@@ -180,10 +180,51 @@ header.top .chip,header.top .btn{background:var(--surface);color:var(--text);bor
   h1{font-size:20px}.kpi .val{font-size:20px}
   .brow{grid-template-columns:minmax(0,1fr) 48px}.brow .bwrap{grid-column:1 / -1;grid-row:2}
 }
+/* ---- Cetak ---- */
+.print-only{display:none}
+#dlgPrint .grp{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:10px 0}
+#dlgPrint .grp b{display:block;font-size:13px;margin-bottom:6px}
+#dlgPrint label.ck{display:flex;gap:8px;align-items:flex-start;font-size:14px;padding:3px 0;cursor:pointer}
+#dlgPrint label.ck input{width:auto;margin:3px 0 0}
+#dlgPrint .row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+#dlgPrint .row label{display:flex;flex-direction:column;font-size:12px;color:var(--text-2);gap:3px;min-width:0}
+#dlgPrint select{width:100%;padding:6px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text)}
+@media (max-width:560px){#dlgPrint .row{grid-template-columns:1fr}}
 @media print{
-  .filters,.btn,.seg,.dtools,.pager,#tip{display:none!important}
-  body{background:#fff}.card,.kpi{break-inside:avoid}
-  .dtbl,.scroll{max-height:none;overflow:visible}
+  :root,:root[data-theme="dark"],:root:not([data-theme="light"]){
+    color-scheme:light;
+    --bg:#ffffff; --surface:#ffffff; --surface-2:#FFF7C2; --line:#d9cf9a;
+    --text:#222c33; --text-2:#36454F; --text-3:#5f686d;
+    --accent:#DAA520; --track:#EEDFA6; --fill:#36454F;
+    --head-bg:#36454F; --head-text:#FFFACD; --head-text-2:#E9E3B8; --th-bg:#36454F; --th-text:#FFFACD;
+    --seq-0:#F8F1C8; --seq-1:#F1DE92; --seq-2:#E6C55A; --seq-3:#DAA520; --seq-4:#9C8A4A; --seq-5:#5E6656; --seq-6:#36454F;
+    --ink-hi:#FFFACD;
+  }
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body{background:#fff;font-size:11px}
+  .wrap{max-width:none;padding:0}
+  header.top,.filters,.btn,.seg,.dtools,.pager,#tip,.notice,.hint,dialog,footer,.noprint{display:none!important}
+  .print-only{display:block}
+  #printHead{border-bottom:3px solid #DAA520;padding-bottom:6px;margin-bottom:10px}
+  #printHead h1{font-size:17px;margin:0;color:#36454F}
+  #printHead .m{font-size:11px;color:#36454F;margin-top:2px}
+  .kpis{grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
+  .kpi{padding:8px 10px}.kpi .val{font-size:17px}
+  .grid2{display:block}
+  .card{border:0;padding:0;margin:0 0 14px;break-inside:auto}
+  .card h2{font-size:14px;border-left:4px solid #DAA520;padding-left:8px}
+  .card-h{break-after:avoid;margin-bottom:6px}
+  .dtbl,.scroll{max-height:none!important;overflow:visible!important}
+  .tbl th,.hm th,.hm th.rowh,.hm td.rowh{position:static}
+  .tbl th,.tbl td{padding:4px 6px}
+  .tbl tr,.hm tr,.brow{break-inside:avoid}
+  .hm{font-size:9.5px;border-spacing:1px;min-width:0;width:100%}
+  .hm td{min-width:0;padding:3px 4px}
+  .hm th.rowh,.hm td.rowh{min-width:0;max-width:none;width:22%}
+  .brow{padding:2px 4px;grid-template-columns:minmax(0,1.3fr) minmax(0,1.4fr) 50px}
+  .brow .nm{-webkit-line-clamp:unset;display:block}
+  details.dq>*{display:block}
+  .sec-break{break-before:page}
 }
 </style>
 </head>
@@ -203,6 +244,7 @@ header.top .chip,header.top .btn{background:var(--surface);color:var(--text);bor
   </header>
 
   <div class="notice" id="notice"></div>
+  <div id="printHead" class="print-only"></div>
 
   <section class="filters" aria-label="Filter">
     <label>Induk / Sub Induk<select id="fInduk"></select></label>
@@ -216,6 +258,38 @@ header.top .chip,header.top .btn{background:var(--surface);color:var(--text);bor
 </div>
 
 <div id="tip" role="tooltip"></div>
+
+<dialog id="dlgPrint">
+  <h2 style="margin:0 0 4px;font-size:18px">Cetak / Simpan PDF</h2>
+  <p style="margin:0">Pilih bagian yang ingin dicetak. Filter di bawah ikut berlaku untuk semua bagian.</p>
+  <div class="grp"><b>1. Filter data</b>
+    <div class="row">
+      <label>Induk / Sub Induk<select id="pInduk"></select></label>
+      <label>SKPD<select id="pSkpd"></select></label>
+      <label>Kd Jenis Belanja<select id="pJenis"></select></label>
+    </div>
+  </div>
+  <div class="grp"><b>2. Bagian yang dicetak</b>
+    <label class="ck"><input type="checkbox" value="ringkasan" checked> Ringkasan (Pagu, Realisasi, %, Sisa)</label>
+    <label class="ck"><input type="checkbox" value="induk" checked> Per Induk dan Sub Induk</label>
+    <label class="ck"><input type="checkbox" value="jenis" checked> TKD Tambahan per Jenis Belanja</label>
+    <label class="ck"><input type="checkbox" value="skpd" checked> Realisasi per SKPD (semua SKPD)</label>
+    <label class="ck"><input type="checkbox" value="matriks" checked> Realisasi TKD Tambahan per Jenis Belanja SKPD</label>
+    <label class="ck"><input type="checkbox" value="rincian"> Rincian belanja (semua baris sesuai filter, bisa puluhan halaman)</label>
+  </div>
+  <div class="grp"><b>3. Pengaturan</b>
+    <div class="row">
+      <label>Isi tabel Jenis Belanja × SKPD<select id="pMetric"><option value="real">Realisasi (Rp)</option><option value="pagu">Pagu (Rp)</option><option value="pct">% Realisasi</option></select></label>
+      <label>Arah kertas<select id="pOrient"><option value="landscape">Mendatar (landscape)</option><option value="portrait">Tegak (portrait)</option></select></label>
+      <label>Ukuran kertas<select id="pSize"><option value="A4">A4</option><option value="Legal">F4 / Legal</option></select></label>
+    </div>
+    <label class="ck" style="margin-top:6px"><input type="checkbox" id="pBreak"> Setiap bagian dimulai di halaman baru</label>
+  </div>
+  <div style="display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
+    <button class="btn" id="pCancel" type="button">Batal</button>
+    <button class="btn primary" id="pGo" type="button">Cetak / Simpan PDF</button>
+  </div>
+</dialog>
 
 <dialog id="dlg">
   <h2 style="margin:0 0 6px;font-size:18px">Sumber data Google Sheets</h2>
@@ -452,7 +526,7 @@ function render(){
   const aktif = [st.f.induk, st.f.skpd, st.f.jenis ? st.f.jenis + " " + jenisLabel(st.f.jenis) : ""].filter(Boolean);
 
   let html = "";
-  html += `<section class="kpis">
+  html += `<section class="kpis" data-sec="ringkasan">
     <div class="kpi"><div class="lbl">Total Pagu (RKA Perg. 4)</div><div class="val">${rpSingkat(P)}</div><div class="det">${rp(P)}</div></div>
     <div class="kpi"><div class="lbl">Total Realisasi</div><div class="val">${rpSingkat(R)}</div><div class="det">${rp(R)}</div></div>
     <div class="kpi"><div class="lbl">Persentase Realisasi</div><div class="val">${pctTxt(R,P)}</div>
@@ -468,6 +542,15 @@ function render(){
   html += cardDQ();
   app.innerHTML = html;
   bindCards();
+  if (st.printing){
+    let first = true;
+    app.querySelectorAll("[data-sec]").forEach(el=>{
+      const on = st.printSec.includes(el.dataset.sec);
+      el.classList.toggle("noprint", !on);
+      el.classList.toggle("sec-break", on && st.printBreak && !first && el.dataset.sec !== "dq");
+      if (on) first = false;
+    });
+  }
   renderDetail();
 }
 
@@ -497,11 +580,11 @@ function seg(name, cur, opts){
 }
 
 function cardSkpd(){
-  const D = filtered("skpd");
+  const D = filtered(st.printing ? null : "skpd");
   const G = sortGroups(groupBy(D,"skpd"), st.skpdSort);
   const max = Math.max(...G.map(g=>g.pagu), 1);
-  const list = st.skpdAll ? G : G.slice(0,15);
-  return `<section class="card"><div class="card-h"><h2>Realisasi per SKPD</h2>
+  const list = (st.skpdAll || st.printing) ? G : G.slice(0,15);
+  return `<section class="card" data-sec="skpd"><div class="card-h"><h2>Realisasi per SKPD</h2>
     ${seg("skpdSort", st.skpdSort, [["pagu","Pagu terbesar"],["real","Realisasi terbesar"],["pct","% tertinggi"],["pctAsc","% terendah"]])}</div>
     ${legendBar()}<div class="hint" style="margin-bottom:6px">Klik nama SKPD untuk memfilter seluruh dashboard.</div>
     <div class="bars">${list.map(g=>barRow(g, g.k, "", max, "skpd", g.k, st.f.skpd===g.k)).join("")}</div>
@@ -509,17 +592,17 @@ function cardSkpd(){
   </section>`;
 }
 function cardJenis(){
-  const D = filtered("jenis");
+  const D = filtered(st.printing ? null : "jenis");
   const G = sortGroups(groupBy(D,"jenis"), st.jenisSort);
   const max = Math.max(...G.map(g=>g.pagu), 1);
-  return `<section class="card"><div class="card-h"><h2>TKD Tambahan per Jenis Belanja</h2>
+  return `<section class="card" data-sec="jenis"><div class="card-h"><h2>TKD Tambahan per Jenis Belanja</h2>
     ${seg("jenisSort", st.jenisSort, [["pagu","Pagu"],["pct","% realisasi"]])}</div>
     ${legendBar()}
     <div class="bars">${G.map(g=>barRow(g, jenisLabel(g.k), g.k===TANPA?"":g.k, max, "jenis", g.k, st.f.jenis===g.k)).join("")}</div>
   </section>`;
 }
 function cardInduk(){
-  const D = filtered("induk");
+  const D = filtered(st.printing ? null : "induk");
   const order = []; const seen = new Set();
   for (const d of D){ if (!seen.has(d.induk)){ seen.add(d.induk); order.push(d.induk); } }
   const P = sum(D,"pagu"), R = sum(D,"real");
@@ -537,7 +620,7 @@ function cardInduk(){
     }
   }
   rows += `<tr class="total"><td>JUMLAH</td><td class="n">${rpSingkat(P)}</td><td class="n">${rpSingkat(R)}</td><td class="n">${pctTxt(R,P)}</td></tr>`;
-  return `<section class="card"><div class="card-h"><h2>Per Induk dan Sub Induk</h2><span class="hint">Klik baris untuk memfilter</span></div>
+  return `<section class="card" data-sec="induk"><div class="card-h"><h2>Per Induk dan Sub Induk</h2><span class="hint">Klik baris untuk memfilter</span></div>
     <div class="scroll"><table class="tbl"><thead><tr><th>Induk / Sub Induk</th><th class="n">Pagu</th><th class="n">Realisasi</th><th class="n">%</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
 }
 function mini(r,p){ const w = p>0?Math.min(100,r/p*100):0; return `<span class="mini" aria-hidden="true"><span style="width:${w}%"></span></span>`; }
@@ -585,14 +668,14 @@ function cardMatrix(){
   const T = {pagu:sum(D,"pagu"), real:sum(D,"real")};
   body += `<tr><td class="rowh tot">Total</td>${jenisG.map(j=>`<td class="tot">${show(j)}</td>`).join("")}<td class="tot">${show(T)}</td></tr>`;
   const scl = `<div class="scale">${m==="pct"?"0%":"Kecil"} ${[1,2,3,4,5,6].map(i=>`<i style="background:var(--seq-${i})"></i>`).join("")} ${m==="pct"?"100%":"Besar"}</div>`;
-  return `<section class="card"><div class="card-h"><h2>REALISASI TKD TAMBAHAN Per Jenis Belanja SKPD</h2>
+  return `<section class="card" data-sec="matriks"><div class="card-h"><h2>REALISASI TKD TAMBAHAN Per Jenis Belanja SKPD</h2>
     <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">${seg("hmMetric", m, [["real","Realisasi (Rp)"],["pagu","Pagu (Rp)"],["pct","% Realisasi"]])}${scl}</div></div>
     <div class="hint" style="margin-bottom:8px">Nilai dalam ${m==="pct"?"persen realisasi terhadap pagu":"Rupiah (Rb = ribu, Jt = juta, M = miliar)"}. Arahkan kursor ke sel untuk rincian, klik sel untuk memfilter.</div>
-    <div class="scroll" style="max-height:620px"><table class="hm"><thead>${head}</thead><tbody>${body}</tbody></table></div></section>`;
+    <div class="scroll" style="max-height:${st.printing?"none":"620px"}"><table class="hm"><thead>${head}</thead><tbody>${body}</tbody></table></div></section>`;
 }
 
 function cardDetail(){
-  return `<section class="card"><div class="card-h"><h2>Rincian Belanja</h2><span class="hint" id="dCount"></span></div>
+  return `<section class="card" data-sec="rincian"><div class="card-h"><h2>Rincian Belanja</h2><span class="hint" id="dCount"></span></div>
     <div class="dtools"><input id="q" type="search" placeholder="Cari SKPD, sub kegiatan, rekening, kode, nomor SP2D…" value="${esc(st.q)}" aria-label="Cari rincian">
     <button class="btn" type="button" data-act="csv">Unduh CSV</button></div>
     <div class="scroll dtbl"><table class="tbl" id="dt"><thead><tr>
@@ -621,7 +704,7 @@ function renderDetail(){
   const D = detailRows();
   const pages = Math.max(1, Math.ceil(D.length/st.pageSize));
   st.page = Math.min(st.page, pages-1);
-  const part = D.slice(st.page*st.pageSize, (st.page+1)*st.pageSize);
+  const part = (st.printing && st.printSec.includes("rincian")) ? D : D.slice(st.page*st.pageSize, (st.page+1)*st.pageSize);
   const tb = document.querySelector("#dt tbody");
   tb.innerHTML = part.map(d=>`<tr>
     <td>${esc(d.skpd)}</td>
@@ -646,7 +729,7 @@ function cardDQ(){
   if (c.tanpaSub.length) items.push(`${c.tanpaSub.length} baris Kode Sub Keg kosong: baris ${daftar(c.tanpaSub)}.`);
   if (c.kosong.length) items.push(`${c.kosong.length} baris berlabel "isian data" tetapi kosong (tidak dihitung): baris ${daftar(c.kosong)}. Bila salah satunya judul Induk, ubah kolom Jenis data menjadi "Induk".`);
   if (!items.length) return "";
-  return `<section class="card"><details class="dq"><summary>Catatan kualitas data (${items.length})</summary><ul>${items.map(i=>`<li>${i}</li>`).join("")}</ul></details></section>`;
+  return `<section class="card" data-sec="dq"><details class="dq"><summary>Catatan kualitas data (${items.length})</summary><ul>${items.map(i=>`<li>${i}</li>`).join("")}</ul></details></section>`;
 }
 
 /* ---------- Interaksi ---------- */
@@ -732,7 +815,60 @@ fInduk.addEventListener("change", ()=>{ st.f.induk = fInduk.value; st.page=0; re
 fSkpd.addEventListener("change", ()=>{ st.f.skpd = fSkpd.value; st.page=0; render(); });
 fJenis.addEventListener("change", ()=>{ st.f.jenis = fJenis.value; st.page=0; render(); });
 document.getElementById("btnReset").addEventListener("click", ()=>{ st.f = {induk:"",skpd:"",jenis:""}; st.q=""; st.page=0; syncSelects(); render(); });
-document.getElementById("btnPrint").addEventListener("click", ()=> window.print());
+/* ---------- Cetak ---------- */
+st.printing = false; st.printSec = []; st.printBreak = false;
+const dlgP = document.getElementById("dlgPrint");
+const pInduk = document.getElementById("pInduk"), pSkpd = document.getElementById("pSkpd"), pJenis = document.getElementById("pJenis");
+const pageStyle = document.createElement("style"); document.head.appendChild(pageStyle);
+function simpanPilihan(o){ try{ localStorage.setItem("tkd_cetak", JSON.stringify(o)); }catch(e){} }
+function bacaPilihan(){ try{ return JSON.parse(localStorage.getItem("tkd_cetak")||"null"); }catch(e){ return null; } }
+function bukaCetak(){
+  pInduk.innerHTML = fInduk.innerHTML; pSkpd.innerHTML = fSkpd.innerHTML; pJenis.innerHTML = fJenis.innerHTML;
+  pInduk.value = st.f.induk; pSkpd.value = st.f.skpd; pJenis.value = st.f.jenis;
+  const o = bacaPilihan();
+  if (o){
+    dlgP.querySelectorAll(".grp input[type=checkbox][value]").forEach(c=> c.checked = o.sec.includes(c.value));
+    document.getElementById("pOrient").value = o.orient || "landscape";
+    document.getElementById("pSize").value = o.size || "A4";
+    document.getElementById("pBreak").checked = !!o.brk;
+  }
+  document.getElementById("pMetric").value = st.hmMetric;
+  dlgP.showModal();
+}
+function teksFilter(){
+  const a = [];
+  if (st.f.induk) a.push("Induk/Sub Induk: " + st.f.induk);
+  if (st.f.skpd) a.push("SKPD: " + st.f.skpd);
+  if (st.f.jenis) a.push("Kd Jenis: " + st.f.jenis + " " + jenisLabel(st.f.jenis));
+  return a.length ? a.join(" · ") : "Semua data (tanpa filter)";
+}
+function siapCetak(sec, metric, orient, size, brk){
+  st.printing = true; st.printSec = sec; st.printBreak = brk;
+  if (metric) st.hmMetric = metric;
+  const ukuran = size==="Legal" ? (orient==="portrait" ? "215mm 330mm" : "330mm 215mm") : ("A4" + (orient==="portrait" ? " portrait" : " landscape"));
+  pageStyle.textContent = "@page{size:" + ukuran + ";margin:10mm 10mm 12mm}";
+  const sumber = document.getElementById("srcText").textContent;
+  document.getElementById("printHead").innerHTML =
+    `<h1>${esc(PENGATURAN.JUDUL)}</h1><div class="m">${esc(PENGATURAN.SUBJUDUL)}</div>` +
+    `<div class="m"><b>Filter:</b> ${esc(teksFilter())}</div>` +
+    `<div class="m">${esc(sumber)} · Dicetak ${esc(jam(new Date()))}</div>`;
+  render();
+}
+function selesaiCetak(){ if (!st.printing) return; st.printing = false; render(); }
+document.getElementById("btnPrint").addEventListener("click", bukaCetak);
+document.getElementById("pCancel").addEventListener("click", ()=> dlgP.close());
+[[pInduk,"induk"],[pSkpd,"skpd"],[pJenis,"jenis"]].forEach(([el,k])=> el.addEventListener("change", ()=>{ st.f[k] = el.value; st.page = 0; syncSelects(); render(); }));
+document.getElementById("pGo").addEventListener("click", ()=>{
+  const sec = [...dlgP.querySelectorAll(".grp input[type=checkbox][value]")].filter(c=>c.checked).map(c=>c.value);
+  if (!sec.length){ alert("Pilih minimal satu bagian."); return; }
+  const o = { sec, orient: document.getElementById("pOrient").value, size: document.getElementById("pSize").value, brk: document.getElementById("pBreak").checked };
+  simpanPilihan(o);
+  dlgP.close();
+  siapCetak(sec, document.getElementById("pMetric").value, o.orient, o.size, o.brk);
+  setTimeout(()=> window.print(), 250);
+});
+window.addEventListener("beforeprint", ()=>{ if (!st.printing) siapCetak(["ringkasan","induk","jenis","skpd","matriks"], null, "landscape", "A4", false); });
+window.addEventListener("afterprint", ()=> setTimeout(selesaiCetak, 100));
 
 /* ---------- Muat data ---------- */
 const notice = document.getElementById("notice");
