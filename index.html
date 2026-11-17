@@ -208,6 +208,41 @@ header.top .chip,header.top .btn{background:var(--surface);color:var(--text);bor
 body.lvl-terbatas #btnReload, body.lvl-terbatas #btnSetting{display:none!important}
 body.lvl-tanpa-csv [data-act="csv"]{display:none!important}
 #btnLogout[hidden],#userChip[hidden]{display:none}
+/* ---- Efek kaca (glassmorphism) — hanya di layar, tidak saat cetak ---- */
+:root{--glass:rgba(255,253,231,.55);--glass-2:rgba(255,253,231,.38);--glass-line:rgba(255,255,255,.65);--glass-head:rgba(54,69,79,.9);
+  --glass-shadow:0 8px 32px rgba(54,69,79,.12),inset 0 1px 0 rgba(255,255,255,.6);
+  --blob-a:rgba(218,165,32,.38);--blob-b:rgba(54,69,79,.20);--blob-c:rgba(255,236,150,.85)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--glass:rgba(44,57,66,.55);--glass-2:rgba(44,57,66,.38);--glass-line:rgba(255,250,205,.12);--glass-head:rgba(54,69,79,.62);
+  --glass-shadow:0 8px 32px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,250,205,.08);
+  --blob-a:rgba(218,165,32,.30);--blob-b:rgba(120,150,170,.22);--blob-c:rgba(218,165,32,.14)}}
+:root[data-theme="dark"]{--glass:rgba(44,57,66,.55);--glass-2:rgba(44,57,66,.38);--glass-line:rgba(255,250,205,.12);--glass-head:rgba(54,69,79,.62);
+  --glass-shadow:0 8px 32px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,250,205,.08);
+  --blob-a:rgba(218,165,32,.30);--blob-b:rgba(120,150,170,.22);--blob-c:rgba(218,165,32,.14)}
+@media screen{
+  @supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){
+    body{background:
+      radial-gradient(42vw 42vw at 8% 6%,var(--blob-a),transparent 70%),
+      radial-gradient(38vw 38vw at 95% 22%,var(--blob-b),transparent 70%),
+      radial-gradient(46vw 46vw at 70% 96%,var(--blob-c),transparent 70%),
+      radial-gradient(30vw 30vw at 20% 75%,var(--blob-b),transparent 70%),
+      var(--bg);background-attachment:fixed}
+    .card,.kpi,.filters,#login .box,header.top,dialog{
+      background:var(--glass);-webkit-backdrop-filter:blur(18px) saturate(160%);backdrop-filter:blur(18px) saturate(160%);
+      border:1px solid var(--glass-line);box-shadow:var(--glass-shadow);border-radius:16px}
+    .kpi{border-top:4px solid var(--accent)}
+    #login .box{border-top:5px solid var(--accent)}
+    header.top{background:var(--glass-head)}
+    #login{background:transparent}
+    #login::before{content:"";position:fixed;inset:0;z-index:-1;background:
+      radial-gradient(40vw 40vw at 20% 20%,var(--blob-a),transparent 70%),
+      radial-gradient(40vw 40vw at 80% 80%,var(--blob-b),transparent 70%),var(--bg)}
+    .filters select,.btn,.dtools input,#login input{background:var(--glass-2)}
+    header.top .chip,header.top .btn{background:var(--surface)}
+    .card,.kpi{transition:transform .18s ease,box-shadow .18s ease}
+    .kpi:hover{transform:translateY(-2px);box-shadow:0 14px 40px rgba(54,69,79,.18),inset 0 1px 0 rgba(255,255,255,.6)}
+  }
+}
+@media (prefers-reduced-motion: reduce){.card,.kpi{transition:none}.kpi:hover{transform:none}}
 /* ---- Cetak ---- */
 .print-only{display:none}
 #dlgPrint .grp{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:10px 0}
