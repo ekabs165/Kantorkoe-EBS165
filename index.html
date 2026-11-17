@@ -28,6 +28,8 @@ const PENGATURAN = {
   TANGGAL_SNAPSHOT: "17 November 2026",
   /* URL_LOGIN: alamat Web App Google Apps Script (berakhiran /exec).
      Bila diisi, dashboard WAJIB login dengan kode akses, dan data hanya diambil lewat Apps Script. */
+  /* LOGO: nama file gambar logo di repository (mis. "logo.png"). Kosongkan untuk tanpa logo. */
+  LOGO: "logo.png",
   URL_LOGIN: "https://script.google.com/macros/s/AKfycbySXpDzu4xumpi-TKW4wRN5KJiy8DhK-QjD6eAwqHYLg1ocXug85xspBpNTSdxkK9JI/exec"
 };
 </script>
@@ -170,6 +172,12 @@ dialog p{font-size:13px;color:var(--text-2)}
 /* Tema Butter Yellow 65% · Charcoal 25% · Goldenrod 10% */
 header.top{background:var(--head-bg);color:var(--head-text);padding:18px 20px;border-radius:var(--radius);align-items:center}
 header.top .sub{color:var(--head-text-2)}
+.brand{display:flex;align-items:center;gap:14px}
+img.logo{height:56px;width:auto;flex:none;object-fit:contain}
+img.logo[hidden]{display:none}
+img.logo-login{display:block;height:72px;margin:0 auto 10px}
+#printHead .logo{height:48px;float:left;margin-right:12px}
+@media (max-width:600px){img.logo{height:40px}}
 header.top .chip,header.top .btn{background:var(--surface);color:var(--text);border-color:transparent}
 .tbl th{background:var(--th-bg);color:var(--th-text)}
 .kpi{border-top:4px solid var(--accent)}
@@ -251,6 +259,7 @@ body.lvl-tanpa-csv [data-act="csv"]{display:none!important}
 <body>
 <div id="login" hidden>
   <form class="box" id="loginForm" autocomplete="off">
+    <img class="logo logo-login" alt="Logo" hidden>
     <h1 id="loginJudul">Masuk Dashboard</h1>
     <p id="loginSub">Masukkan kode akses Anda.</p>
     <label for="kodeAkses">Kode akses</label>
@@ -262,10 +271,10 @@ body.lvl-tanpa-csv [data-act="csv"]{display:none!important}
 </div>
 <div class="wrap">
   <header class="top">
-    <div>
+    <div class="brand"><img class="logo" alt="Logo" hidden><div>
       <h1 id="judul">DASHBOARD REALISASI DANA TAMBAHAN TKD 2026</h1>
       <p class="sub" id="subjudul"></p>
-    </div>
+    </div></div>
     <div class="status">
       <span class="chip" id="srcChip"><span class="dot"></span><span id="srcText">Memuat data…</span></span>
       <button class="btn" id="btnReload" type="button" title="Tarik ulang data dari Google Sheets">↻ Muat ulang</button>
@@ -888,6 +897,7 @@ function siapCetak(sec, metric, orient, size, brk){
   pageStyle.textContent = "@page{size:" + ukuran + ";margin:10mm 10mm 12mm}";
   const sumber = document.getElementById("srcText").textContent;
   document.getElementById("printHead").innerHTML =
+    (logoSiap ? `<img class="logo" src="${esc(PENGATURAN.LOGO)}" alt="">` : "") +
     `<h1>${esc(PENGATURAN.JUDUL)}</h1><div class="m">${esc(PENGATURAN.SUBJUDUL)}</div>` +
     `<div class="m"><b>Filter:</b> ${esc(teksFilter())}</div>` +
     `<div class="m">${esc(sumber)} · Dicetak ${esc(jam(new Date()))}</div>`;
@@ -1001,6 +1011,14 @@ async function muatAman(){
     notice.textContent = "Data belum bisa dimuat (" + (e.message || e) + "). Coba lagi beberapa saat.";
   }
 }
+let logoSiap = false;
+(function pasangLogo(){
+  const imgs = document.querySelectorAll("img.logo");
+  if (!PENGATURAN.LOGO) return;
+  const uji = new Image();
+  uji.onload = ()=>{ logoSiap = true; imgs.forEach(i=>{ i.src = PENGATURAN.LOGO; i.hidden = false; }); };
+  uji.src = PENGATURAN.LOGO;
+})();
 function muatSnapshot(){
   return new Promise(res=>{
     if (window.SNAPSHOT_CSV) return res(window.SNAPSHOT_CSV);
