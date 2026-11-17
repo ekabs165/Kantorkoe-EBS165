@@ -31,33 +31,36 @@ const PENGATURAN = {
 <style>
 :root{
   color-scheme: light;
-  --bg:#f4f4f1; --surface:#fcfcfb; --surface-2:#f0efec; --line:#e2e1dc;
-  --text:#0b0b0b; --text-2:#52514e; --text-3:#7a7974;
-  --accent:#2a78d6; --accent-strong:#1c5cab;
-  --track:#cde2fb; --fill:#2a78d6;
-  --seq-0:#f0efec; --seq-1:#cde2fb; --seq-2:#9ec5f4; --seq-3:#6da7ec; --seq-4:#3987e5; --seq-5:#256abf; --seq-6:#184f95;
-  --ink-hi:#ffffff; --warn-bg:#fff4dc; --warn-text:#7a4b00; --ok:#0b7a3b;
+  --bg:#FFFACD; --surface:#FFFDE7; --surface-2:#F8EEB4; --line:#E9DC9A;
+  --text:#36454F; --text-2:#4F5D66; --text-3:#6E777C;
+  --accent:#DAA520; --accent-strong:#9C7412;
+  --track:#EEDFA6; --fill:#36454F;
+  --head-bg:#36454F; --head-text:#FFFACD; --head-text-2:#E9E3B8; --th-bg:#36454F; --th-text:#FFFACD;
+  --seq-0:#F8F1C8; --seq-1:#F1DE92; --seq-2:#E6C55A; --seq-3:#DAA520; --seq-4:#9C8A4A; --seq-5:#5E6656; --seq-6:#36454F;
+  --ink-hi:#FFFACD; --warn-bg:#FBE3B0; --warn-text:#6B4A00; --ok:#2E7D32;
   --radius:10px;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
     color-scheme: dark;
-    --bg:#121211; --surface:#1a1a19; --surface-2:#242422; --line:#33332f;
-    --text:#f0efec; --text-2:#c3c2b7; --text-3:#97968e;
-    --accent:#3987e5; --accent-strong:#86b6ef;
-    --track:#22344d; --fill:#3987e5;
-    --seq-0:#242422; --seq-1:#1d3352; --seq-2:#1c4a80; --seq-3:#2161ad; --seq-4:#3987e5; --seq-5:#6da7ec; --seq-6:#9ec5f4;
-    --ink-hi:#0b0b0b; --warn-bg:#3a2c0e; --warn-text:#f2cf85; --ok:#5cc98a;
+    --bg:#232D34; --surface:#2C3942; --surface-2:#36454F; --line:#46555F;
+    --text:#FFFACD; --text-2:#E4DFB8; --text-3:#B7B59C;
+    --accent:#DAA520; --accent-strong:#F0C75E;
+    --track:#4A5964; --fill:#DAA520;
+    --head-bg:#36454F; --head-text:#FFFACD; --head-text-2:#E4DFB8; --th-bg:#36454F; --th-text:#FFFACD;
+    --seq-0:#2F3C45; --seq-1:#465448; --seq-2:#6E6A3F; --seq-3:#9C7F2E; --seq-4:#DAA520; --seq-5:#EBCB6E; --seq-6:#FFFACD;
+    --ink-hi:#36454F; --warn-bg:#4A3A12; --warn-text:#F6DC8E; --ok:#7BCB86;
   }
 }
 :root[data-theme="dark"]{
   color-scheme: dark;
-  --bg:#121211; --surface:#1a1a19; --surface-2:#242422; --line:#33332f;
-  --text:#f0efec; --text-2:#c3c2b7; --text-3:#97968e;
-  --accent:#3987e5; --accent-strong:#86b6ef;
-  --track:#22344d; --fill:#3987e5;
-  --seq-0:#242422; --seq-1:#1d3352; --seq-2:#1c4a80; --seq-3:#2161ad; --seq-4:#3987e5; --seq-5:#6da7ec; --seq-6:#9ec5f4;
-  --ink-hi:#0b0b0b; --warn-bg:#3a2c0e; --warn-text:#f2cf85; --ok:#5cc98a;
+  --bg:#232D34; --surface:#2C3942; --surface-2:#36454F; --line:#46555F;
+  --text:#FFFACD; --text-2:#E4DFB8; --text-3:#B7B59C;
+  --accent:#DAA520; --accent-strong:#F0C75E;
+  --track:#4A5964; --fill:#DAA520;
+  --head-bg:#36454F; --head-text:#FFFACD; --head-text-2:#E4DFB8; --th-bg:#36454F; --th-text:#FFFACD;
+  --seq-0:#2F3C45; --seq-1:#465448; --seq-2:#6E6A3F; --seq-3:#9C7F2E; --seq-4:#DAA520; --seq-5:#EBCB6E; --seq-6:#FFFACD;
+  --ink-hi:#36454F; --warn-bg:#4A3A12; --warn-text:#F6DC8E; --ok:#7BCB86;
 }
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -161,6 +164,17 @@ dialog::backdrop{background:rgba(0,0,0,.35)}
 dialog input{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:var(--bg);margin:8px 0}
 dialog p{font-size:13px;color:var(--text-2)}
 .loading{padding:40px 0;text-align:center;color:var(--text-2)}
+/* Tema Butter Yellow 65% · Charcoal 25% · Goldenrod 10% */
+header.top{background:var(--head-bg);color:var(--head-text);padding:18px 20px;border-radius:var(--radius);align-items:center}
+header.top .sub{color:var(--head-text-2)}
+header.top .chip,header.top .btn{background:var(--surface);color:var(--text);border-color:transparent}
+.tbl th{background:var(--th-bg);color:var(--th-text)}
+.kpi{border-top:4px solid var(--accent)}
+.kpi .bar span{background:var(--accent)}
+.brow.sel{box-shadow:inset 3px 0 0 var(--accent)}
+.seg button[aria-pressed="true"]{background:var(--accent);color:#36454F}
+.btn.primary{color:#36454F}
+.filters select:focus,.dtools input:focus,.btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 @media (max-width:900px){.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}.grid2{grid-template-columns:minmax(0,1fr)}.grid2 .card{margin-bottom:0}}
 @media (max-width:520px){
   h1{font-size:20px}.kpi .val{font-size:20px}
