@@ -512,7 +512,7 @@ function cardJenis(){
   const D = filtered("jenis");
   const G = sortGroups(groupBy(D,"jenis"), st.jenisSort);
   const max = Math.max(...G.map(g=>g.pagu), 1);
-  return `<section class="card"><div class="card-h"><h2>Per Kd Jenis Belanja</h2>
+  return `<section class="card"><div class="card-h"><h2>TKD Tambahan per Jenis Belanja</h2>
     ${seg("jenisSort", st.jenisSort, [["pagu","Pagu"],["pct","% realisasi"]])}</div>
     ${legendBar()}
     <div class="bars">${G.map(g=>barRow(g, jenisLabel(g.k), g.k===TANPA?"":g.k, max, "jenis", g.k, st.f.jenis===g.k)).join("")}</div>
@@ -585,7 +585,7 @@ function cardMatrix(){
   const T = {pagu:sum(D,"pagu"), real:sum(D,"real")};
   body += `<tr><td class="rowh tot">Total</td>${jenisG.map(j=>`<td class="tot">${show(j)}</td>`).join("")}<td class="tot">${show(T)}</td></tr>`;
   const scl = `<div class="scale">${m==="pct"?"0%":"Kecil"} ${[1,2,3,4,5,6].map(i=>`<i style="background:var(--seq-${i})"></i>`).join("")} ${m==="pct"?"100%":"Besar"}</div>`;
-  return `<section class="card"><div class="card-h"><h2>Kd Jenis Belanja per SKPD</h2>
+  return `<section class="card"><div class="card-h"><h2>REALISASI TKD TAMBAHAN Per Jenis Belanja SKPD</h2>
     <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">${seg("hmMetric", m, [["real","Realisasi (Rp)"],["pagu","Pagu (Rp)"],["pct","% Realisasi"]])}${scl}</div></div>
     <div class="hint" style="margin-bottom:8px">Nilai dalam ${m==="pct"?"persen realisasi terhadap pagu":"Rupiah (Rb = ribu, Jt = juta, M = miliar)"}. Arahkan kursor ke sel untuk rincian, klik sel untuk memfilter.</div>
     <div class="scroll" style="max-height:620px"><table class="hm"><thead>${head}</thead><tbody>${body}</tbody></table></div></section>`;
@@ -757,7 +757,7 @@ async function muat(){
       const hasil = bacaGrid(grid);
       terapkan(hasil);
       st.waktu = new Date();
-      setStatus("live", "Langsung dari Google Sheets · " + jam(st.waktu));
+      setStatus("live", "Update data per · " + jam(st.waktu));
       notice.textContent = "";
       return;
     } catch (e) {
