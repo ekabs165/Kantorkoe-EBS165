@@ -941,6 +941,18 @@ function jsonp(url, params, ms){
     document.head.appendChild(s);
   });
 }
+/* Ambil JSON dari Apps Script tanpa membawa cookie Google browser.
+   Ini menghindari galat "tidak dapat membuka file" saat browser masuk dengan beberapa akun Google. */
+async function ambilTanpaCookie(url, params, ms){
+  const ctrl = new AbortController(); const t = setTimeout(()=>ctrl.abort(), ms||30000);
+  try {
+    const q = Object.keys(params).map(k => k + "=" + encodeURIComponent(params[k])).join("&");
+    const res = await fetch(url + (url.includes("?") ? "&" : "?") + q + "&_t=" + Date.now(),
+      { credentials: "omit", redirect: "follow", cache: "no-store", signal: ctrl.signal });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    return JSON.parse(await res.text());
+  } finally { clearTimeout(t); }
+}
 /* Memanggil Apps Script. Bila gagal: coba sekali lagi, lalu (bila ada alamat lain yang tersimpan
    di browser lewat "Sumber data") kembali ke alamat resmi PENGATURAN.URL_LOGIN. */
 async function panggilGas(params, ms){
@@ -951,7 +963,7 @@ async function panggilGas(params, ms){
   let galat;
   for (let i = 0; i < daftar.length; i++){
     try {
-      const r = await jsonp(daftar[i], params, ms);
+      const r = await ambilTanpaCookie(daftar[i], params, ms).catch(()=> jsonp(daftar[i], params, ms));
       if (daftar[i] === resmi && daftar[0] !== resmi){ try{ localStorage.removeItem("tkd_sumber"); }catch(e){} }
       return r;
     } catch(e){ galat = e; }
