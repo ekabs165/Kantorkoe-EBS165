@@ -954,7 +954,7 @@ function terapkanPengguna(u){
   document.body.classList.toggle("lvl-terbatas", lv >= 2);
   document.body.classList.toggle("lvl-tanpa-csv", lv >= 3);
   const chip = document.getElementById("userChip");
-  chip.hidden = false; chip.innerHTML = `<b>${esc(u.nama)}</b>` + (lv === 1 ? ` · Level ${lv}` : "");
+  chip.hidden = false; chip.innerHTML = `<b>${esc(u.nama)}</b>` + (u.namaPengguna ? ` · ${esc(u.namaPengguna)}` : "") + (lv === 1 ? ` · Level ${lv}` : "");
   document.getElementById("btnLogout").hidden = false;
 }
 document.getElementById("lihatKode").addEventListener("click", ()=>{ const i = document.getElementById("kodeAkses"); i.type = i.type === "password" ? "text" : "password"; });
