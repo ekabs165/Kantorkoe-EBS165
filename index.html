@@ -25,7 +25,10 @@ const PENGATURAN = {
   MUAT_ULANG_MENIT: 10,
   JUDUL: "DASHBOARD REALISASI DANA TAMBAHAN TKD 2026",
   SUBJUDUL: "Pemerintah Kabupaten Solok",
-  TANGGAL_SNAPSHOT: "16 November 2026"
+  TANGGAL_SNAPSHOT: "16 November 2026",
+  /* URL_LOGIN: alamat Web App Google Apps Script (berakhiran /exec).
+     Bila diisi, dashboard WAJIB login dengan kode akses, dan data hanya diambil lewat Apps Script. */
+  URL_LOGIN: ""
 };
 </script>
 <style>
@@ -180,6 +183,23 @@ header.top .chip,header.top .btn{background:var(--surface);color:var(--text);bor
   h1{font-size:20px}.kpi .val{font-size:20px}
   .brow{grid-template-columns:minmax(0,1fr) 48px}.brow .bwrap{grid-column:1 / -1;grid-row:2}
 }
+/* ---- Login ---- */
+#login{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px}
+#login[hidden]{display:none}
+#login .box{width:100%;max-width:400px;background:var(--surface);border:1px solid var(--line);border-top:5px solid var(--accent);border-radius:12px;padding:24px}
+#login h1{font-size:20px;margin:0 0 2px;color:var(--text)}
+#login p{color:var(--text-2);font-size:14px;margin:0 0 16px}
+#login label{font-size:13px;color:var(--text-2)}
+#login .inp{display:flex;gap:6px;margin:6px 0 10px}
+#login input{flex:1;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text);font:inherit}
+#login .err{color:#b3261e;font-size:13px;min-height:18px;margin-bottom:8px}
+#login .btn.primary{width:100%;padding:10px}
+#login .ingat{display:flex;gap:6px;align-items:center;font-size:13px;color:var(--text-2);margin-bottom:12px}
+#login .ingat input{flex:0 0 auto}
+.userchip b{font-weight:650}
+body.lvl-terbatas #btnReload, body.lvl-terbatas #btnSetting{display:none!important}
+body.lvl-tanpa-csv [data-act="csv"]{display:none!important}
+#btnLogout[hidden],#userChip[hidden]{display:none}
 /* ---- Cetak ---- */
 .print-only{display:none}
 #dlgPrint .grp{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:10px 0}
@@ -229,6 +249,17 @@ header.top .chip,header.top .btn{background:var(--surface);color:var(--text);bor
 </style>
 </head>
 <body>
+<div id="login" hidden>
+  <form class="box" id="loginForm" autocomplete="off">
+    <h1 id="loginJudul">Masuk Dashboard</h1>
+    <p id="loginSub">Masukkan kode akses Anda.</p>
+    <label for="kodeAkses">Kode akses</label>
+    <div class="inp"><input id="kodeAkses" type="password" required autocomplete="current-password"><button class="btn" type="button" id="lihatKode" title="Tampilkan kode">👁</button></div>
+    <label class="ingat"><input type="checkbox" id="ingatSaya"> Tetap masuk di perangkat ini</label>
+    <div class="err" id="loginErr" role="alert"></div>
+    <button class="btn primary" type="submit" id="btnMasuk">Masuk</button>
+  </form>
+</div>
 <div class="wrap">
   <header class="top">
     <div>
@@ -240,6 +271,8 @@ header.top .chip,header.top .btn{background:var(--surface);color:var(--text);bor
       <button class="btn" id="btnReload" type="button" title="Tarik ulang data dari Google Sheets">↻ Muat ulang</button>
       <button class="btn" id="btnSetting" type="button" title="Atur link Google Sheets">⚙ Sumber data</button>
       <button class="btn" id="btnPrint" type="button">Cetak</button>
+      <span class="chip userchip" id="userChip" hidden></span>
+      <button class="btn" id="btnLogout" type="button" hidden>Keluar</button>
     </div>
   </header>
 
@@ -302,8 +335,7 @@ header.top .chip,header.top .btn{background:var(--surface);color:var(--text);bor
   </div>
 </dialog>
 
-<script src="data-cadangan.js"></script>
-<script>const SNAPSHOT_CSV = window.SNAPSHOT_CSV || "";</script>
+
 <script>
 (function(){
 "use strict";
@@ -781,6 +813,7 @@ function showTip(e, s){
 function hideTip(){ tip.style.opacity = 0; }
 
 function unduhCSV(){
+  if (st.user && (parseInt(st.user.level,10)||4) >= 3) return;
   const D = detailRows();
   const cols = [["induk","Induk"],["sub","Sub Induk"],["kodeSkpd","Kode SKPD"],["skpd","SKPD"],["kodeSub","Kode Sub Keg"],["subKeg","Sub Kegiatan"],["jenis","Kd Jenis"],["norek","Kode Norek"],["namaRek","Nama Rekening"],["pagu","Pagu"],["real","Realisasi"],["dasar","Dasar Realisasi"],["baris","Baris di Sheet1"]];
   const q = v => { const s = String(v==null?"":v); return /[",\n;]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s; };
@@ -878,7 +911,101 @@ function setStatus(kind, text){
 }
 const jam = d => d.toLocaleString("id-ID",{day:"numeric",month:"long",year:"numeric",hour:"2-digit",minute:"2-digit"});
 
+/* ---------- Mode login (Apps Script) ---------- */
+function jsonp(url, params, ms){
+  return new Promise((resolve,reject)=>{
+    const cb = "__tkd_j_" + Date.now() + Math.floor(Math.random()*1e4);
+    const s = document.createElement("script");
+    const done = () => { clearTimeout(t); try{ delete window[cb]; }catch(e){ window[cb]=undefined; } s.remove(); };
+    const t = setTimeout(()=>{ done(); reject(new Error("Server login tidak menjawab. Periksa internet atau alamat URL_LOGIN.")); }, ms||30000);
+    window[cb] = r => { done(); resolve(r); };
+    s.onerror = () => { done(); reject(new Error("Server login tidak bisa dihubungi.")); };
+    const q = Object.keys(params).map(k => k + "=" + encodeURIComponent(params[k])).join("&");
+    s.src = url + (url.includes("?") ? "&" : "?") + q + "&callback=" + cb + "&_t=" + Date.now();
+    document.head.appendChild(s);
+  });
+}
+function urlLogin(){
+  let s = ""; try { s = localStorage.getItem("tkd_sumber") || ""; } catch(e){}
+  return /script\.google(usercontent)?\.com/.test(s) ? s.trim() : (PENGATURAN.URL_LOGIN || "").trim();
+}
+const modeLogin = () => !!(PENGATURAN.URL_LOGIN || "").trim();
+function ambilToken(){ try{ return sessionStorage.getItem("tkd_token") || localStorage.getItem("tkd_token") || ""; }catch(e){ return ""; } }
+function simpanToken(tk, ingat){ try{ sessionStorage.setItem("tkd_token", tk); if (ingat) localStorage.setItem("tkd_token", tk); }catch(e){} }
+function hapusToken(){ try{ sessionStorage.removeItem("tkd_token"); localStorage.removeItem("tkd_token"); }catch(e){} }
+const loginEl = document.getElementById("login");
+function tampilLogin(pesan){
+  loginEl.hidden = false;
+  document.getElementById("loginJudul").textContent = PENGATURAN.JUDUL;
+  document.getElementById("loginSub").textContent = PENGATURAN.SUBJUDUL + " · Masukkan kode akses Anda.";
+  document.getElementById("loginErr").textContent = pesan || "";
+  st.data = null; app.innerHTML = ""; setStatus("", "Belum masuk");
+  setTimeout(()=> document.getElementById("kodeAkses").focus(), 50);
+}
+function terapkanPengguna(u){
+  st.user = u;
+  const lv = parseInt(u.level,10) || 4;
+  document.body.classList.toggle("lvl-terbatas", lv >= 2);
+  document.body.classList.toggle("lvl-tanpa-csv", lv >= 3);
+  const chip = document.getElementById("userChip");
+  chip.hidden = false; chip.innerHTML = `<b>${esc(u.nama)}</b> · Level ${lv}`;
+  document.getElementById("btnLogout").hidden = false;
+}
+document.getElementById("lihatKode").addEventListener("click", ()=>{ const i = document.getElementById("kodeAkses"); i.type = i.type === "password" ? "text" : "password"; });
+document.getElementById("loginForm").addEventListener("submit", async ev=>{
+  ev.preventDefault();
+  const kode = document.getElementById("kodeAkses").value.trim();
+  const btn = document.getElementById("btnMasuk"), err = document.getElementById("loginErr");
+  if (!kode) return;
+  btn.disabled = true; btn.textContent = "Memeriksa…"; err.textContent = "";
+  try {
+    const r = await jsonp(urlLogin(), {aksi:"login", kode});
+    if (!r || !r.ok){ err.textContent = (r && r.pesan) || "Kode akses salah."; return; }
+    simpanToken(r.token, document.getElementById("ingatSaya").checked);
+    document.getElementById("kodeAkses").value = "";
+    loginEl.hidden = true;
+    terapkanPengguna(r.pengguna);
+    await muat();
+  } catch(e){ err.textContent = e.message || String(e); }
+  finally { btn.disabled = false; btn.textContent = "Masuk"; }
+});
+document.getElementById("btnLogout").addEventListener("click", ()=>{
+  hapusToken(); st.user = null; document.body.classList.remove("lvl-terbatas","lvl-tanpa-csv");
+  document.getElementById("userChip").hidden = true; document.getElementById("btnLogout").hidden = true;
+  st.f = {induk:"",skpd:"",jenis:""}; tampilLogin("Anda sudah keluar.");
+});
+async function muatAman(){
+  const tk = ambilToken();
+  if (!tk){ tampilLogin(""); return; }
+  setStatus("", "Memuat data…");
+  try {
+    const r = await jsonp(urlLogin(), {aksi:"data", token: tk}, 45000);
+    if (!r || !r.ok){
+      if (r && r.keluar){ hapusToken(); tampilLogin(r.pesan); return; }
+      throw new Error((r && r.pesan) || "Data gagal dimuat.");
+    }
+    loginEl.hidden = true;
+    terapkanPengguna(r.pengguna);
+    terapkan(bacaGrid(r.grid));
+    st.waktu = new Date();
+    setStatus("live", "Update data per · " + jam(st.waktu));
+    notice.textContent = "";
+  } catch(e){
+    setStatus("snap", "Data belum termuat");
+    notice.textContent = "Data belum bisa dimuat (" + (e.message || e) + "). Coba lagi beberapa saat.";
+  }
+}
+function muatSnapshot(){
+  return new Promise(res=>{
+    if (window.SNAPSHOT_CSV) return res(window.SNAPSHOT_CSV);
+    const s = document.createElement("script"); s.src = "data-cadangan.js";
+    s.onload = ()=> res(window.SNAPSHOT_CSV || ""); s.onerror = ()=> res("");
+    document.head.appendChild(s);
+  });
+}
+
 async function muat(){
+  if (modeLogin()) return muatAman();
   const url = sumberAktif();
   setStatus("", "Memuat data…");
   let grid = null, pesan = "";
@@ -902,7 +1029,9 @@ async function muat(){
     }
   }
   pesan = galat.join("; ");
-  const hasil = bacaGrid(parseCSV(SNAPSHOT_CSV));
+  const snap = await muatSnapshot();
+  if (!snap){ setStatus("snap","Data belum termuat"); notice.textContent = "Google Sheets belum bisa dibaca (" + pesan + ")."; return; }
+  const hasil = bacaGrid(parseCSV(snap));
   terapkan(hasil);
   setStatus("snap", "Data cadangan per " + PENGATURAN.TANGGAL_SNAPSHOT);
   notice.textContent = url
@@ -919,14 +1048,14 @@ document.getElementById("judul").textContent = PENGATURAN.JUDUL;
 document.getElementById("subjudul").textContent = PENGATURAN.SUBJUDUL;
 document.getElementById("btnReload").addEventListener("click", muat);
 const dlg = document.getElementById("dlg"), dlgUrl = document.getElementById("dlgUrl");
-document.getElementById("btnSetting").addEventListener("click", ()=>{ dlgUrl.value = sumberAktif(); dlg.showModal(); });
+document.getElementById("btnSetting").addEventListener("click", ()=>{ dlgUrl.value = modeLogin() ? urlLogin() : sumberAktif(); dlg.showModal(); });
 document.getElementById("dlgCancel").addEventListener("click", ()=> dlg.close());
 document.getElementById("dlgClear").addEventListener("click", ()=>{ try{ localStorage.removeItem("tkd_sumber"); }catch(e){} dlg.close(); muat(); });
 document.getElementById("dlgSave").addEventListener("click", ()=>{ try{ localStorage.setItem("tkd_sumber", dlgUrl.value.trim()); }catch(e){} dlg.close(); muat(); });
 
 muat();
 if (PENGATURAN.MUAT_ULANG_MENIT > 0){
-  setInterval(()=>{ if (sumberAktif() && document.visibilityState === "visible") muat(); }, PENGATURAN.MUAT_ULANG_MENIT*60000);
+  setInterval(()=>{ if ((modeLogin() ? (ambilToken() && st.data) : sumberAktif()) && document.visibilityState === "visible") muat(); }, PENGATURAN.MUAT_ULANG_MENIT*60000);
 }
 })();
 </script>
