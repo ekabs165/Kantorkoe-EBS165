@@ -935,11 +935,28 @@ function jsonp(url, params, ms){
     const done = () => { clearTimeout(t); try{ delete window[cb]; }catch(e){ window[cb]=undefined; } s.remove(); };
     const t = setTimeout(()=>{ done(); reject(new Error("Server login tidak menjawab. Periksa internet atau alamat URL_LOGIN.")); }, ms||30000);
     window[cb] = r => { done(); resolve(r); };
-    s.onerror = () => { done(); reject(new Error("Server login tidak bisa dihubungi.")); };
+    s.onerror = () => { done(); reject(new Error("Server login tidak bisa dihubungi. Bila berulang, beri tahu Admin (Apps Script mungkin belum diterapkan untuk \u0027Siapa saja\u0027).")); };
     const q = Object.keys(params).map(k => k + "=" + encodeURIComponent(params[k])).join("&");
     s.src = url + (url.includes("?") ? "&" : "?") + q + "&callback=" + cb + "&_t=" + Date.now();
     document.head.appendChild(s);
   });
+}
+/* Memanggil Apps Script. Bila gagal: coba sekali lagi, lalu (bila ada alamat lain yang tersimpan
+   di browser lewat "Sumber data") kembali ke alamat resmi PENGATURAN.URL_LOGIN. */
+async function panggilGas(params, ms){
+  const daftar = [urlLogin()];
+  const resmi = (PENGATURAN.URL_LOGIN || "").trim();
+  daftar.push(daftar[0]);
+  if (resmi && !daftar.includes(resmi)) daftar.push(resmi);
+  let galat;
+  for (let i = 0; i < daftar.length; i++){
+    try {
+      const r = await jsonp(daftar[i], params, ms);
+      if (daftar[i] === resmi && daftar[0] !== resmi){ try{ localStorage.removeItem("tkd_sumber"); }catch(e){} }
+      return r;
+    } catch(e){ galat = e; }
+  }
+  throw galat;
 }
 function urlLogin(){
   let s = ""; try { s = localStorage.getItem("tkd_sumber") || ""; } catch(e){}
@@ -975,7 +992,7 @@ document.getElementById("loginForm").addEventListener("submit", async ev=>{
   if (!kode) return;
   btn.disabled = true; btn.textContent = "Memeriksa…"; err.textContent = "";
   try {
-    const r = await jsonp(urlLogin(), {aksi:"login", kode});
+    const r = await panggilGas({aksi:"login", kode});
     if (!r || !r.ok){ err.textContent = (r && r.pesan) || "Kode akses salah."; return; }
     simpanToken(r.token, document.getElementById("ingatSaya").checked);
     document.getElementById("kodeAkses").value = "";
@@ -995,7 +1012,7 @@ async function muatAman(){
   if (!tk){ tampilLogin(""); return; }
   setStatus("", "Memuat data…");
   try {
-    const r = await jsonp(urlLogin(), {aksi:"data", token: tk}, 45000);
+    const r = await panggilGas({aksi:"data", token: tk}, 45000);
     if (!r || !r.ok){
       if (r && r.keluar){ hapusToken(); tampilLogin(r.pesan); return; }
       throw new Error((r && r.pesan) || "Data gagal dimuat.");
