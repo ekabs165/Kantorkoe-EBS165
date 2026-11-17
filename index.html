@@ -20,12 +20,12 @@
    MUAT_ULANG_MENIT : dashboard menarik data ulang otomatis tiap N menit (0 = mati).
    ===================================================================== */
 const PENGATURAN = {
-  SUMBER_DATA: "https://docs.google.com/spreadsheets/d/1Xh0gBR12JwCPY_hNt3We3NuFBYUc8dWRPCrC6nrzhf4/edit?gid=1472641302#gid=1472641302",
-  SUMBER_CADANGAN: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSCKFss5PkHa8F5cqJVALWi0fgQxuuZVNzBSUI3WOYheQDtHfAS5Ob9dIw3yWL8jitnZRpUAV4AGDLd/pub?gid=1472641302&single=true&output=csv",
+  SUMBER_DATA: "https://docs.google.com/spreadsheets/d/1Xh0gBR12JwCPY_hNt3We3NuFBYUc8dWRPCrC6nrzhf4/edit?gid=1199654352#gid=1199654352",
+  SUMBER_CADANGAN: "",
   MUAT_ULANG_MENIT: 10,
   JUDUL: "DASHBOARD REALISASI DANA TAMBAHAN TKD 2026",
   SUBJUDUL: "Pemerintah Kabupaten Solok",
-  TANGGAL_SNAPSHOT: "16 November 2026",
+  TANGGAL_SNAPSHOT: "17 November 2026",
   /* URL_LOGIN: alamat Web App Google Apps Script (berakhiran /exec).
      Bila diisi, dashboard WAJIB login dengan kode akses, dan data hanya diambil lewat Apps Script. */
   URL_LOGIN: ""
@@ -462,17 +462,22 @@ function bacaGrid(grid){
   for (let i=0;i<Math.min(grid.length,40);i++){
     if ((grid[i]||[]).some(c => norm(c) === "jenis data")){ h = i; break; }
   }
-  if (h < 0) throw new Error("Baris judul kolom (yang memuat \"Jenis data\") tidak ditemukan. Pastikan yang dipakai adalah Sheet1.");
+  if (h < 0) throw new Error("Baris judul kolom (yang memuat \"Jenis data\") tidak ditemukan. Pastikan yang dipakai adalah sheet Realisasi TKD 2026.");
   const H = grid[h].map(norm);
   const cari = f => H.findIndex(f);
   const col = {
     no: cari(x => x === "no." || x === "no"),
-    kodeSkpd: cari(x => x === "kode skpd"),
+    kodeSkpd: H.map(x => x === "kode skpd").lastIndexOf(true),
     skpd: cari(x => x === "skpd" || x === "nama skpd"),
     kodeSub: cari(x => x.startsWith("kode sub keg")),
     sub: cari(x => x === "sub kegiatan"),
     jenis: cari(x => x === "kd jenis" || x === "kode jenis"),
-    norek: cari(x => x === "kode norek" || x === "kode rekening"),
+    norek: cari(x => x === "kode norek" || x === "kd norek" || x === "kode rekening"),
+    kdProg: cari(x => x === "kdprog" || x === "kd prog" || x === "kode program"),
+    kdKeg: cari(x => x === "kdkeg" || x === "kd keg" || x === "kode kegiatan"),
+    update: cari(x => x.startsWith("update terakhir")),
+    ketUbah: cari(x => x.startsWith("keterangan perubahan")),
+    ketFinal: cari(x => x === "ket final"),
     namaRek: cari(x => x.startsWith("nama rekening")),
     pagu: cari(x => x.startsWith("jumlah") || x.includes("pagu") || x.includes("(rka)")),
     real: cari(x => x.startsWith("realisasi")),
@@ -509,7 +514,8 @@ function bacaGrid(grid){
     rec.push({
       baris: i+1, induk, sub, indukSub: induk + " › " + sub,
       skpd: nama || "(Tanpa SKPD)", kodeSkpd, kodeSub, subKeg: subk,
-      jenis, norek, namaRek: s(r,"namaRek"), dasar: s(r,"dasar"), pagu, real
+      jenis, norek, namaRek: s(r,"namaRek"), dasar: s(r,"dasar"), pagu, real,
+      kdProg: s(r,"kdProg"), kdKeg: s(r,"kdKeg"), update: s(r,"update"), ketUbah: s(r,"ketUbah"), ketFinal: s(r,"ketFinal")
     });
   }
   if (!rec.length) throw new Error("Tidak ada baris \"isian data\" yang terbaca.");
@@ -723,7 +729,7 @@ function detailRows(){
   if (q){
     const terms = q.split(" ");
     D = D.filter(d => {
-      const hay = norm([d.skpd,d.kodeSkpd,d.subKeg,d.kodeSub,d.jenis,jenisLabel(d.jenis),d.norek,d.namaRek,d.dasar,d.induk,d.sub].join(" "));
+      const hay = norm([d.skpd,d.kodeSkpd,d.subKeg,d.kodeSub,d.kdProg,d.kdKeg,d.jenis,jenisLabel(d.jenis),d.norek,d.namaRek,d.dasar,d.induk,d.sub,d.ketUbah,d.ketFinal].join(" "));
       return terms.every(t => hay.includes(t));
     });
   }
@@ -742,7 +748,7 @@ function renderDetail(){
     <td>${esc(d.skpd)}</td>
     <td class="wrap">${esc(d.subKeg)}${d.kodeSub?`<br><small>${esc(d.kodeSub)}</small>`:""}</td>
     <td>${esc(d.jenis)}<br><small>${esc(jenisLabel(d.jenis))}</small></td>
-    <td class="wrap">${esc(d.namaRek)}${d.norek?`<br><small>${esc(d.norek)}</small>`:""}${d.dasar?`<br><small>SP2D: ${esc(d.dasar)}</small>`:""}</td>
+    <td class="wrap">${esc(d.namaRek)}${d.norek?`<br><small>${esc(d.norek)}</small>`:""}${d.dasar?`<br><small>SP2D: ${esc(d.dasar)}</small>`:""}${d.ketUbah?`<br><small>APBDP: ${esc(d.ketUbah)}</small>`:""}${d.ketFinal?`<br><small>Ket: ${esc(d.ketFinal)}</small>`:""}</td>
     <td class="n">${rp(d.pagu)}</td><td class="n">${rp(d.real)}</td><td class="n">${pctTxt(d.real,d.pagu)}</td></tr>`).join("")
     || `<tr><td colspan="7" style="text-align:center;color:var(--text-3);padding:20px">Tidak ada rincian yang cocok.</td></tr>`;
   const P = sum(D,"pagu"), R = sum(D,"real");
@@ -815,7 +821,7 @@ function hideTip(){ tip.style.opacity = 0; }
 function unduhCSV(){
   if (st.user && (parseInt(st.user.level,10)||4) >= 3) return;
   const D = detailRows();
-  const cols = [["induk","Induk"],["sub","Sub Induk"],["kodeSkpd","Kode SKPD"],["skpd","SKPD"],["kodeSub","Kode Sub Keg"],["subKeg","Sub Kegiatan"],["jenis","Kd Jenis"],["norek","Kode Norek"],["namaRek","Nama Rekening"],["pagu","Pagu"],["real","Realisasi"],["dasar","Dasar Realisasi"],["baris","Baris di Sheet1"]];
+  const cols = [["induk","Induk"],["sub","Sub Induk"],["kodeSkpd","Kode SKPD"],["skpd","SKPD"],["kdProg","KdProg"],["kdKeg","KdKeg"],["kodeSub","Kode Sub Keg"],["subKeg","Sub Kegiatan"],["jenis","Kd Jenis"],["norek","Kode Norek"],["namaRek","Nama Rekening"],["pagu","Pagu"],["real","Realisasi"],["dasar","Dasar Realisasi"],["update","Update Terakhir"],["ketUbah","Keterangan Perubahan (APBDP)"],["ketFinal","Ket Final"],["baris","Baris di sheet"]];
   const q = v => { const s = String(v==null?"":v); return /[",\n;]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s; };
   const txt = "﻿" + cols.map(c=>c[1]).join(",") + "\n" + D.map(d=>cols.map(c=>q(d[c[0]])).join(",")).join("\n");
   const a = document.createElement("a");
@@ -1041,7 +1047,7 @@ async function muat(){
 function terapkan(h){
   st.data = h.rec; st.cat = h.cat;
   isiSelects(); render();
-  document.getElementById("foot").textContent = "Sumber: Sheet1 laporan realisasi TKD. Baris yang dihitung adalah baris berlabel \"isian data\"; Induk dan Sub Induk mengikuti judul di atasnya.";
+  document.getElementById("foot").textContent = "Sumber: sheet \"Realisasi TKD 2026\". Baris yang dihitung adalah baris berlabel \"isian data\"; Induk dan Sub Induk mengikuti judul di atasnya.";
 }
 
 document.getElementById("judul").textContent = PENGATURAN.JUDUL;
