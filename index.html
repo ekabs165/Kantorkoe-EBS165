@@ -341,14 +341,14 @@ body.lvl-tanpa-csv [data-act="csv"]{display:none!important}
   <p style="margin:0">Pilih bagian yang ingin dicetak. Filter di bawah ikut berlaku untuk semua bagian.</p>
   <div class="grp"><b>1. Filter data</b>
     <div class="row">
-      <label>Induk / Sub Induk<select id="pInduk"></select></label>
+      <label>Bidang / Sub Bidang<select id="pInduk"></select></label>
       <label>SKPD<select id="pSkpd"></select></label>
-      <label>Kd Jenis Belanja<select id="pJenis"></select></label>
+      <label>Jenis Belanja<select id="pJenis"></select></label>
     </div>
   </div>
   <div class="grp"><b>2. Bagian yang dicetak</b>
     <label class="ck"><input type="checkbox" value="ringkasan" checked> Ringkasan (Pagu, Realisasi, %, Sisa)</label>
-    <label class="ck"><input type="checkbox" value="induk" checked> Per Induk dan Sub Induk</label>
+    <label class="ck"><input type="checkbox" value="induk" checked> Per Bidang dan Sub Bidang</label>
     <label class="ck"><input type="checkbox" value="jenis" checked> TKD Tambahan per Jenis Belanja</label>
     <label class="ck"><input type="checkbox" value="skpd" checked> Realisasi per SKPD (semua SKPD)</label>
     <label class="ck"><input type="checkbox" value="matriks" checked> Realisasi TKD Tambahan per Jenis Belanja SKPD</label>
@@ -702,8 +702,8 @@ function cardInduk(){
     }
   }
   rows += `<tr class="total"><td>JUMLAH</td><td class="n">${rpSingkat(P)}</td><td class="n">${rpSingkat(R)}</td><td class="n">${pctTxt(R,P)}</td></tr>`;
-  return `<section class="card" data-sec="induk"><div class="card-h"><h2>Per Induk dan Sub Induk</h2><span class="hint">Klik baris untuk memfilter</span></div>
-    <div class="scroll"><table class="tbl"><thead><tr><th>Induk / Sub Induk</th><th class="n">Pagu</th><th class="n">Realisasi</th><th class="n">%</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
+  return `<section class="card" data-sec="induk"><div class="card-h"><h2>Per Bidang dan Sub Bidang</h2><span class="hint">Klik baris untuk memfilter</span></div>
+    <div class="scroll"><table class="tbl"><thead><tr><th>Bidang / Sub Bidang</th><th class="n">Pagu</th><th class="n">Realisasi</th><th class="n">%</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
 }
 function mini(r,p){ const w = p>0?Math.min(100,r/p*100):0; return `<span class="mini" aria-hidden="true"><span style="width:${w}%"></span></span>`; }
 
