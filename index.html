@@ -334,6 +334,41 @@ svg.pie{width:230px;max-width:100%;height:auto;flex:none}
 .pie-leg .d{grid-column:2 / -1;font-size:12px;color:var(--text-3);font-variant-numeric:tabular-nums}
 .pie-ket{margin:0 0 10px}
 @media print{svg.pie{width:200px}.pie-seg{stroke:#fff}.pie-ket{display:block!important}}
+/* ---- Laporan Lap TKD ---- */
+dialog.lap-dlg,dialog.lap-dlg[open]{background:var(--surface)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+dialog.lap-dlg{max-width:min(1500px,calc(100% - 24px));width:calc(100% - 24px);max-height:calc(100vh - 24px);padding:0;overflow:auto}
+.lap-bar{position:sticky;top:0;z-index:2;display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--line)}
+.lap-aksi{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:13px}
+.lap-aksi select{padding:5px 6px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--text)}
+#lapIsi{padding:14px 16px 18px}
+.lap-kop{display:flex;align-items:center;gap:12px;justify-content:center;text-align:center;margin-bottom:10px}
+.lap-kop img{height:52px}
+.lap-kop h2{margin:0;font-size:17px;letter-spacing:.02em}
+.lap-sub{font-size:12px;color:var(--text-2)}
+.lap-scroll{overflow-x:auto}
+.lap-tbl{border-collapse:collapse;width:100%;font-size:11.5px;font-variant-numeric:tabular-nums}
+.lap-tbl th,.lap-tbl td{border:1px solid var(--line);padding:4px 6px;vertical-align:middle}
+.lap-tbl th{background:#FCE9A6;color:#36454F;font-weight:700;text-align:center}
+.lap-tbl td.n{text-align:right;white-space:nowrap}.lap-tbl td.c{text-align:center}.lap-tbl td.p{text-align:center}.lap-tbl td.b{font-weight:700}
+.lap-tbl td:nth-child(2){min-width:220px}
+.lap-tbl tr.lap-tot td{font-weight:700;background:var(--surface-2)}
+.lap-tbl tr.lap-tot td:nth-child(2){text-align:center}
+.lap-cat{font-size:11px;color:var(--text-3);margin-top:6px}
+#lapCetak{display:none}
+@media print{
+  body.cetak-lap .wrap,body.cetak-lap #login,body.cetak-lap dialog{display:none!important}
+  body.cetak-lap #lapCetak{display:block}
+  #lapCetak .lap-scroll{overflow:visible}
+  #lapCetak .lap-tbl{font-size:8.5px}
+  #lapCetak .lap-tbl th,#lapCetak .lap-tbl td{border:1px solid #555;padding:2px 4px;color:#000}
+  #lapCetak .lap-tbl th{background:#FCE9A6!important}
+  #lapCetak .lap-tbl tr.lap-tot td{background:#FFF7D6!important}
+  #lapCetak .lap-tbl td:nth-child(2){min-width:38mm;width:38mm}
+  #lapCetak .lap-tbl th{font-size:8px}
+  #lapCetak .lap-tbl thead{display:table-header-group}
+  #lapCetak .lap-tbl tr{break-inside:avoid}
+  #lapCetak .lap-kop h2{font-size:14px;color:#000}
+}
 /* ---- Cetak ---- */
 .print-only{display:none}
 #dlgPrint .grp{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:10px 0}
@@ -411,6 +446,7 @@ svg.pie{width:230px;max-width:100%;height:auto;flex:none}
       <button class="btn" id="btnReload" type="button" title="Tarik ulang data dari Google Sheets">↻ Muat ulang</button>
       <button class="btn" id="btnSetting" type="button" title="Atur link Google Sheets">⚙ Sumber data</button>
       <button class="btn" id="btnPrint" type="button">Cetak</button>
+      <button class="btn" id="btnLap" type="button" title="Rekap realisasi per OPD (format Lap TKD), bisa dicetak PDF dan diunduh Excel">📄 Lap TKD</button>
     </div>
   </header>
 
@@ -430,6 +466,14 @@ svg.pie{width:230px;max-width:100%;height:auto;flex:none}
 
 <div id="tip" role="tooltip"></div>
 
+<dialog id="dlgLap" class="lap-dlg" aria-label="Laporan Lap TKD">
+  <div class="lap-bar"><b>Laporan Rekap Realisasi per OPD</b>
+    <span class="lap-aksi"><label>Kertas <select id="lapKertas"><option value="A4">A4 mendatar</option><option value="F4">F4 mendatar</option></select></label>
+    <button class="btn primary" type="button" id="lapPdf">Cetak / PDF</button>
+    <button class="btn" type="button" id="lapXls" data-act="csv">Unduh Excel</button>
+    <button class="btn" type="button" id="lapTutup">Tutup</button></span></div>
+  <div id="lapIsi"></div>
+</dialog>
 <dialog id="dlgPrint">
   <h2 style="margin:0 0 4px;font-size:18px">Cetak / Simpan PDF</h2>
   <p style="margin:0">Pilih bagian yang ingin dicetak. Filter di bawah ikut berlaku untuk semua bagian.</p>
@@ -1194,8 +1238,8 @@ document.getElementById("pGo").addEventListener("click", ()=>{
   siapCetak(sec, document.getElementById("pMetric").value, o.orient, o.size, o.brk);
   setTimeout(()=> window.print(), 250);
 });
-window.addEventListener("beforeprint", ()=>{ if (!st.printing) siapCetak(["ringkasan","induk","jenis","skpd","matriks"], null, "landscape", "A4", false); });
-window.addEventListener("afterprint", ()=> setTimeout(selesaiCetak, 100));
+window.addEventListener("beforeprint", ()=>{ if (!st.printing && !document.body.classList.contains("cetak-lap")) siapCetak(["ringkasan","induk","jenis","skpd","matriks"], null, "landscape", "A4", false); });
+window.addEventListener("afterprint", ()=> setTimeout(()=>{ if (!document.body.classList.contains("cetak-lap")) selesaiCetak(); }, 100));
 
 /* ---------- Muat data ---------- */
 const notice = document.getElementById("notice");
@@ -1390,11 +1434,209 @@ document.getElementById("dlgCancel").addEventListener("click", ()=> dlg.close())
 document.getElementById("dlgClear").addEventListener("click", ()=>{ try{ localStorage.removeItem("tkd_sumber"); }catch(e){} dlg.close(); muat(); });
 document.getElementById("dlgSave").addEventListener("click", ()=>{ try{ localStorage.setItem("tkd_sumber", dlgUrl.value.trim()); }catch(e){} dlg.close(); muat(); });
 
+/* =================== LAPORAN "LAP TKD" (rekap per OPD) =================== */
+const LAP_URUTAN = ["Dinas Pekerjaan Umum dan Penataan Ruang","Dinas Pertanian","Dinas Perumahan Rakyat, Kawasan Permukiman dan Pertanahan",
+  "Dinas Pendidikan Pemuda dan Olahraga","Dinas Kesehatan","Dinas Perhubungan","Satuan Polisi Pamong Praja dan Pemadam Kebakaran",
+  "Badan Penanggulangan Bencana Daerah","Dinas Sosial","Sekretariat Daerah","Badan Keuangan Daerah","Inspektorat Daerah",
+  "Dinas Pariwisata dan Kebudayaan","Dinas Perikanan dan Pangan","Dinas Penanaman Modal, Pelayanan Terpadu Satu Pintu dan Tenaga Kerja",
+  "Dinas Koperasi, Usaha Kecil Menengah, Perindustrian dan Perdagangan","Dinas Pemberdayaan Masyarakat dan Nagari","Dinas Perpustakaan dan Kearsipan",
+  "Dinas Lingkungan Hidup","Dinas Pengendalian Penduduk, Keluarga Berencana, Pemberdayaan Perempuan dan Perlindungan Anak",
+  "Dinas Administrasi Kependudukan dan Pencatatan Sipil","Dinas Komunikasi dan Informatika","Sekretariat DPRD",
+  "Badan Perencanaan, Penelitian dan Pengembangan","Badan Pendapatan Daerah","Badan Kepegawaian dan Pengembangan Sumber Daya Manusia",
+  "Kecamatan Pantai Cermin","Kecamatan Lembah Gumanti","Kecamatan Payung Sekaki","Kecamatan Lembang Jaya","Kecamatan Gunung Talang",
+  "Kecamatan Bukit Sundi","Kecamatan IX Koto Sungai Lasi","Kecamatan Kubung","Kecamatan X Koto Singkarak","Kecamatan X Koto Diatas",
+  "Kecamatan Junjung Sirih","Kecamatan Hiliran Gumanti","Kecamatan Tigo Lurah","Kecamatan Danau Kembar","Badan Kesatuan Bangsa dan Politik"];
+const LAP_JUDUL = "REKAP REALISASI DANA TKD TAMBAHAN 2026";
+function lapKelompok(j){ j = String(j||""); return j.startsWith("5.1.01") ? "peg" : j.startsWith("5.1.02") ? "bj" : j.startsWith("5.2") ? "mod" : "lain"; }
+function lapData(){
+  const kunci = s => String(s||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+  const urut = new Map(LAP_URUTAN.map((n,i)=>[kunci(n), i]));
+  const m = new Map();
+  for (const d of (st.data||[])){
+    const k = d.skpd || "(tanpa SKPD)";
+    if (!m.has(k)) m.set(k, { opd:k, pagu:{peg:0,bj:0,mod:0,lain:0}, real:{peg:0,bj:0,mod:0,lain:0}, n:0, pertama:m.size });
+    const o = m.get(k), g = lapKelompok(d.jenis);
+    o.pagu[g] += d.pagu||0; o.real[g] += d.real||0; o.n++;
+  }
+  const rows = [...m.values()].sort((a,b)=>{
+    const ua = urut.has(kunci(a.opd)) ? urut.get(kunci(a.opd)) : 1000 + a.pertama;
+    const ub = urut.has(kunci(b.opd)) ? urut.get(kunci(b.opd)) : 1000 + b.pertama;
+    return ua - ub;
+  });
+  rows.forEach(r=>{ r.tp = r.pagu.peg+r.pagu.bj+r.pagu.mod+r.pagu.lain; r.tr = r.real.peg+r.real.bj+r.real.mod+r.real.lain; });
+  const tot = { pagu:{peg:0,bj:0,mod:0,lain:0}, real:{peg:0,bj:0,mod:0,lain:0}, n:0, tp:0, tr:0 };
+  rows.forEach(r=>{ for (const g of ["peg","bj","mod","lain"]){ tot.pagu[g]+=r.pagu[g]; tot.real[g]+=r.real[g]; } tot.n+=r.n; tot.tp+=r.tp; tot.tr+=r.tr; });
+  return { rows, tot, adaLain: tot.pagu.lain > 0 || tot.real.lain > 0 };
+}
+const lapAngka = v => (Math.round((v||0)*100)/100).toLocaleString("id-ID",{minimumFractionDigits:2,maximumFractionDigits:2});
+const lapPct = (r,p) => (p>0 ? r/p*100 : 0).toLocaleString("id-ID",{minimumFractionDigits:2,maximumFractionDigits:2});
+function lapKeadaan(){ return st.waktu ? "Keadaan data per " + jam(st.waktu) : ""; }
+function lapHTML(){
+  const { rows, tot, adaLain } = lapData();
+  const G = adaLain ? ["peg","bj","mod","lain"] : ["peg","bj","mod"];
+  const NAMA = { peg:"Belanja Pegawai", bj:"Belanja Barang dan Jasa", mod:"Belanja Modal", lain:"Belanja Lainnya (BTT & Bantuan Keuangan)" };
+  const baris = (r, i, total) => `<tr class="${total?"lap-tot":""}"><td class="c">${total?"":i+1}</td><td>${total?"JUMLAH":esc(r.opd)}</td>` +
+    G.map(g=>`<td class="n">${lapAngka(r.pagu[g])}</td>`).join("") + `<td class="n b">${lapAngka(r.tp)}</td>` +
+    G.map(g=>`<td class="n">${lapAngka(r.real[g])}</td><td class="n p">${lapPct(r.real[g], r.pagu[g])}</td>`).join("") +
+    `<td class="n b">${lapAngka(r.tr)}</td><td class="n p b">${lapPct(r.tr, r.tp)}</td><td>${total?"":r.n+" paket"}</td></tr>`;
+  return `<div class="lap-kop">${logoSiap?`<img src="${esc(PENGATURAN.LOGO)}" alt="">`:""}<div><h2>${LAP_JUDUL}</h2><div class="lap-sub">${esc(PENGATURAN.SUBJUDUL)}${lapKeadaan()?" · "+esc(lapKeadaan()):""}</div></div></div>
+  <div class="lap-scroll"><table class="lap-tbl"><thead>
+    <tr><th rowspan="2">No</th><th rowspan="2">OPD</th><th colspan="${G.length}">Pagu</th><th rowspan="2">Total Pagu</th><th colspan="${G.length*2}">Realisasi</th><th rowspan="2">Total Realisasi</th><th rowspan="2">%</th><th rowspan="2">Keterangan</th></tr>
+    <tr>${G.map(g=>`<th>${NAMA[g]}</th>`).join("")}${G.map(g=>`<th>${NAMA[g]}</th><th>%</th>`).join("")}</tr>
+  </thead><tbody>${rows.map((r,i)=>baris(r,i,false)).join("")}${baris(tot,0,true)}</tbody></table></div>
+  <div class="lap-cat">Angka dalam Rupiah. % = realisasi dibagi pagu × 100. Keterangan = jumlah rincian belanja (paket) di data sumber.</div>`;
+}
+
+/* ---- Penulis XLSX mandiri (tanpa pustaka luar) ---- */
+const CRC_T = (()=>{ const t = new Uint32Array(256); for (let n=0;n<256;n++){ let c=n; for (let k=0;k<8;k++) c = c&1 ? 0xEDB88320^(c>>>1) : c>>>1; t[n]=c>>>0; } return t; })();
+function crc32(u8){ let c = 0xFFFFFFFF; for (let i=0;i<u8.length;i++) c = CRC_T[(c^u8[i])&0xFF]^(c>>>8); return (c^0xFFFFFFFF)>>>0; }
+function zipStore(files){
+  const enc = new TextEncoder(), parts = [], central = []; let off = 0;
+  const u16 = v => [v&255,(v>>>8)&255], u32 = v => [v&255,(v>>>8)&255,(v>>>16)&255,(v>>>24)&255];
+  for (const f of files){
+    const name = enc.encode(f.name), data = enc.encode(f.data), crc = crc32(data);
+    const head = [0x50,0x4b,3,4, ...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0x21), ...u32(crc), ...u32(data.length), ...u32(data.length), ...u16(name.length), ...u16(0)];
+    parts.push(new Uint8Array(head), name, data);
+    central.push(new Uint8Array([0x50,0x4b,1,2, ...u16(20), ...u16(20), ...u16(0x0800), ...u16(0), ...u16(0), ...u16(0x21), ...u32(crc), ...u32(data.length), ...u32(data.length), ...u16(name.length), ...u16(0), ...u16(0), ...u16(0), ...u16(0), ...u32(0), ...u32(off)]), name);
+    off += head.length + name.length + data.length;
+  }
+  const cdLen = central.reduce((a,b)=>a+b.length,0);
+  const end = new Uint8Array([0x50,0x4b,5,6, ...u16(0), ...u16(0), ...u16(files.length), ...u16(files.length), ...u32(cdLen), ...u32(off), ...u16(0)]);
+  return new Blob([...parts, ...central, end], { type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" });
+}
+function kolom(n){ let s = ""; n++; while (n){ const m = (n-1)%26; s = String.fromCharCode(65+m) + s; n = Math.floor((n-1)/26); } return s; }
+const xmlEsc = s => String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+function lapExcel(){
+  if (st.user && (parseInt(st.user.level,10)||4) >= 3) return;
+  const { rows, tot, adaLain } = lapData();
+  const G = adaLain ? ["peg","bj","mod","lain"] : ["peg","bj","mod"];
+  const NAMA = { peg:"Belanja Pegawai", bj:"Belanja Barang dan Jasa", mod:"Belanja Modal", lain:"Belanja Lainnya (BTT & Bantuan Keuangan)" };
+  // tata kolom
+  const cP = 2, cTP = cP + G.length, cR = cTP + 1, cTR = cR + G.length*2, cPct = cTR + 1, cKet = cPct + 1, nCol = cKet + 1;
+  const L = kolom;
+  const sheet = []; const merges = [];
+  const sel = (r, c, isi) => { (sheet[r] = sheet[r] || [])[c] = isi; };
+  const S = (s, st_) => ({ t:"s", v:s, s:st_ }), N = (v, st_, f) => ({ t:"n", v:v, s:st_, f:f });
+  // Judul (baris 1-based: 3) & keadaan (4)
+  sel(3, 0, S(LAP_JUDUL, 1)); merges.push(`A3:${L(nCol-1)}3`);
+  sel(4, 0, S([PENGATURAN.SUBJUDUL, lapKeadaan()].filter(Boolean).join(" · "), 10)); merges.push(`A4:${L(nCol-1)}4`);
+  // Header 5-6
+  const h = (r,c,t) => sel(r,c,S(t,2));
+  for (let c=0;c<nCol;c++){ h(5,c,""); h(6,c,""); }
+  h(5,0,"No"); merges.push("A5:A6"); h(5,1,"OPD"); merges.push("B5:B6");
+  h(5,cP,"Pagu"); merges.push(`${L(cP)}5:${L(cTP-1)}5`); G.forEach((g,i)=>h(6,cP+i,NAMA[g]));
+  h(5,cTP,"Total Pagu"); merges.push(`${L(cTP)}5:${L(cTP)}6`);
+  h(5,cR,"Realisasi"); merges.push(`${L(cR)}5:${L(cTR-1)}5`); G.forEach((g,i)=>{ h(6,cR+i*2,NAMA[g]); h(6,cR+i*2+1,"%"); });
+  h(5,cTR,"Total Realisasi"); merges.push(`${L(cTR)}5:${L(cTR)}6`);
+  h(5,cPct,"%"); merges.push(`${L(cPct)}5:${L(cPct)}6`);
+  h(5,cKet,"Keterangan"); merges.push(`${L(cKet)}5:${L(cKet)}6`);
+  const r0 = 7;
+  const tulis = (r, o, total, i) => {
+    const B = total ? 1 : 0; // gaya tebal untuk JUMLAH
+    sel(r,0, total ? S("",6) : N(i+1, 9));
+    sel(r,1, S(total ? "JUMLAH" : o.opd, total ? 6 : 3));
+    G.forEach((g,k)=>{ const c = cP+k;
+      sel(r,c, N(o.pagu[g], B?7:4, total ? `SUM(${L(c)}${r0}:${L(c)}${r-1})` : null)); });
+    sel(r,cTP, N(o.tp, 7, `SUM(${L(cP)}${r}:${L(cTP-1)}${r})`));
+    G.forEach((g,k)=>{ const c = cR+k*2, cp = cP+k;
+      sel(r,c, N(o.real[g], B?7:4, total ? `SUM(${L(c)}${r0}:${L(c)}${r-1})` : null));
+      sel(r,c+1, N(o.pagu[g]>0 ? o.real[g]/o.pagu[g]*100 : 0, B?8:5, `IFERROR(${L(c)}${r}/${L(cp)}${r}*100,0)`)); });
+    sel(r,cTR, N(o.tr, 7, G.map((g,k)=>`${L(cR+k*2)}${r}`).join("+")));
+    sel(r,cPct, N(o.tp>0 ? o.tr/o.tp*100 : 0, 8, `IFERROR(${L(cTR)}${r}/${L(cTP)}${r}*100,0)`));
+    sel(r,cKet, S(total ? "" : o.n + " paket", total ? 6 : 3));
+  };
+  rows.forEach((o,i)=> tulis(r0+i, o, false, i));
+  const rT = r0 + rows.length; tulis(rT, tot, true);
+  sel(rT+2, 0, S("Catatan: angka dalam Rupiah; % = realisasi / pagu × 100; Keterangan = jumlah rincian belanja (paket) di data sumber.", 11));
+  // XML lembar
+  let sd = "";
+  for (let r=1; r<sheet.length; r++){
+    const row = sheet[r]; if (!row) continue;
+    const ht = r===6 ? ' ht="42" customHeight="1"' : r===3 ? ' ht="20" customHeight="1"' : "";
+    sd += `<row r="${r}"${ht}>`;
+    row.forEach((c, ci)=>{ if (!c) return; const ref = L(ci)+r;
+      if (c.t === "s") sd += c.v === "" ? `<c r="${ref}" s="${c.s}"/>` : `<c r="${ref}" s="${c.s}" t="inlineStr"><is><t xml:space="preserve">${xmlEsc(c.v)}</t></is></c>`;
+      else sd += `<c r="${ref}" s="${c.s}">${c.f?`<f>${xmlEsc(c.f)}</f>`:""}<v>${Number.isFinite(c.v)?c.v:0}</v></c>`;
+    });
+    sd += `</row>`;
+  }
+  const lebar = [5.5, 40, ...G.map(()=>18), 19, ...G.flatMap(()=>[18, 8]), 19, 8, 22];
+  const cols = lebar.map((w,i)=>`<col min="${i+1}" max="${i+1}" width="${w}" customWidth="1"/>`).join("");
+  const sheetXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<sheetPr><pageSetUpPr fitToPage="1"/></sheetPr>
+<sheetViews><sheetView workbookViewId="0" zoomScale="90"><pane xSplit="2" ySplit="6" topLeftCell="C7" activePane="bottomRight" state="frozen"/></sheetView></sheetViews>
+<sheetFormatPr defaultRowHeight="15"/><cols>${cols}</cols><sheetData>${sd}</sheetData>
+<mergeCells count="${merges.length}">${merges.map(m=>`<mergeCell ref="${m}"/>`).join("")}</mergeCells>
+<printOptions horizontalCentered="1"/><pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/>
+<pageSetup paperSize="9" orientation="landscape" fitToWidth="1" fitToHeight="0"/></worksheet>`;
+  const styles = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">
+<numFmts count="2"><numFmt numFmtId="164" formatCode="#,##0.00"/><numFmt numFmtId="165" formatCode="0.00"/></numFmts>
+<fonts count="4"><font><sz val="10"/><name val="Arial"/></font><font><b/><sz val="10"/><name val="Arial"/></font><font><b/><sz val="12"/><name val="Arial"/></font><font><i/><sz val="9"/><name val="Arial"/></font></fonts>
+<fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFCE9A6"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFF7D6"/><bgColor indexed="64"/></patternFill></fill></fills>
+<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"/><right style="thin"/><top style="thin"/><bottom style="thin"/><diagonal/></border></borders>
+<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
+<cellXfs count="12">
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
+<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>
+<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment vertical="center"/></xf>
+<xf numFmtId="165" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="1" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="164" fontId="1" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment vertical="center"/></xf>
+<xf numFmtId="165" fontId="1" fillId="3" borderId="1" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
+<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="center"/></xf>
+<xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
+  const files = [
+    { name:"[Content_Types].xml", data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>` },
+    { name:"_rels/.rels", data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>` },
+    { name:"xl/workbook.xml", data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Lap TKD" sheetId="1" r:id="rId1"/></sheets><definedNames><definedName name="_xlnm.Print_Titles" localSheetId="0">'Lap TKD'!$5:$6</definedName></definedNames><calcPr calcId="191029" fullCalcOnLoad="1"/></workbook>` },
+    { name:"xl/_rels/workbook.xml.rels", data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>` },
+    { name:"xl/styles.xml", data:styles },
+    { name:"xl/worksheets/sheet1.xml", data:sheetXml }
+  ];
+  const tgl = st.waktu ? st.waktu.toISOString().slice(0,10) : new Date().toISOString().slice(0,10);
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(zipStore(files));
+  a.download = `Lap TKD ${tgl}.xlsx`; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
+}
+const dlgLap = document.getElementById("dlgLap");
+function bukaLap(){
+  if (!st.data || !st.data.length) return;
+  document.getElementById("lapIsi").innerHTML = lapHTML();
+  dlgLap.showModal();
+}
+document.getElementById("btnLap").addEventListener("click", bukaLap);
+document.getElementById("lapTutup").addEventListener("click", ()=> dlgLap.close());
+document.getElementById("lapXls").addEventListener("click", lapExcel);
+document.getElementById("lapPdf").addEventListener("click", ()=>{
+  const kertas = document.getElementById("lapKertas").value;
+  document.getElementById("lapCetak").innerHTML = lapHTML();
+  dlgLap.close();
+  document.body.classList.add("cetak-lap");
+  pageStyle.textContent = "@page{size:" + (kertas==="F4" ? "330mm 215mm" : "A4 landscape") + ";margin:8mm 8mm 10mm}";
+  if (judulAsli === null) judulAsli = document.title;
+  document.title = " ";
+  setTimeout(()=> window.print(), 200);
+});
+window.addEventListener("afterprint", ()=>{
+  if (!document.body.classList.contains("cetak-lap")) return;
+  document.body.classList.remove("cetak-lap");
+  document.getElementById("lapCetak").innerHTML = "";
+  if (judulAsli !== null){ document.title = judulAsli; judulAsli = null; }
+});
+
 muat();
 if (PENGATURAN.MUAT_ULANG_MENIT > 0){
   setInterval(()=>{ if ((modeLogin() ? (ambilToken() && st.data) : sumberAktif()) && document.visibilityState === "visible") muat(); }, PENGATURAN.MUAT_ULANG_MENIT*60000);
 }
 })();
 </script>
+<div id="lapCetak"></div>
 </body>
 </html>
