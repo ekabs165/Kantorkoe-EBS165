@@ -267,10 +267,16 @@ svg.rose{width:330px;max-width:100%;height:auto}
 .rose-p{cursor:pointer;transition:opacity .15s}
 .rose-p.redup{opacity:.3}
 .rose-p:hover{opacity:1;filter:brightness(1.08)}
-.rose-pagu{fill:var(--track);stroke:var(--surface);stroke-width:1}
-.rose-real{fill:var(--fill);stroke:var(--surface);stroke-width:1}
-.rose-lbl{font-size:11px;font-weight:700;fill:var(--text-2)}
-.rose-c{font-size:15px;font-weight:700;fill:var(--text)}
+.rose-pagu{fill:var(--c);fill-opacity:.24;stroke:var(--c);stroke-opacity:.55;stroke-width:1}
+.rose-real{fill:var(--c);stroke:var(--surface);stroke-width:1.2;filter:drop-shadow(0 2px 3px rgba(0,0,0,.18))}
+.rose-nb{stroke:var(--surface);stroke-width:1.5}
+.rose-lbl{font-size:10px;font-weight:700;fill:#fff}
+.rose-mid{fill:var(--surface);stroke:var(--line)}
+.rose-c{font-size:13px;font-weight:700;fill:var(--text)}
+.rose-c2{font-size:8.5px;fill:var(--text-3)}
+.brow.berwarna .track span{background:var(--c)}
+.brow.berwarna .track{background:color-mix(in srgb,var(--c) 22%,transparent)}
+.brow .dotw{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--c);margin-right:6px;vertical-align:0}
 .rose-wrap .hint{margin:2px 0 0;text-align:left}
 @media print{svg.rose{width:280px}.rose-wrap .hint{display:block!important}}
 /* ---- Grafik pie Bidang ---- */
@@ -686,12 +692,12 @@ function render(){
 function legendBar(){
   return `<div class="legend"><span><i style="background:var(--fill)"></i>Realisasi</span><span><i style="background:var(--track)"></i>Pagu (sisa)</span><span>Angka di kanan = % realisasi</span></div>`;
 }
-function barRow(o, name, sub, max, type, key, selected){
+function barRow(o, name, sub, max, type, key, selected, warna){
   const w = max>0 ? o.pagu/max*100 : 0;
   const wr = o.pagu>0 ? Math.min(100,o.real/o.pagu*100) : 0;
-  return `<div class="brow${selected?" sel":""}" tabindex="0" data-type="${type}" data-key="${esc(key)}"
+  return `<div class="brow${selected?" sel":""}${warna?" berwarna":""}" tabindex="0" data-type="${type}" data-key="${esc(key)}"${warna?` style="--c:${warna}"`:""}
      data-tip="${esc(name)}|${o.pagu}|${o.real}|${o.n}">
-    <div class="nm" title="${esc(name)}">${esc(name)}${sub?`<small>${esc(sub)}</small>`:""}</div>
+    <div class="nm" title="${esc(name)}">${warna?'<i class="dotw"></i>':""}${esc(name)}${sub?`<small>${esc(sub)}</small>`:""}</div>
     <div class="bwrap"><div class="track" style="width:${Math.max(w,0.6)}%"><span style="width:${wr}%"></span></div>
       <div class="bval">${rpSingkat(o.real)} dari ${rpSingkat(o.pagu)}</div></div>
     <div class="pct">${pctTxt(o.real,o.pagu)}</div></div>`;
@@ -765,17 +771,19 @@ function cardJenis(){
   return `<section class="card" data-sec="jenis"><div class="card-h"><h2>TKD Tambahan per Jenis Belanja</h2>
     ${seg("jenisSort", st.jenisSort, [["pagu","Pagu"],["pct","% realisasi"]])}</div>
     ${roseJenis(G)}
-    ${legendBar()}
-    <div class="bars">${G.map((g,i)=>barRow(g, (i+1) + ". " + jenisLabel(g.k), g.k===TANPA?"":g.k, max, "jenis", g.k, st.f.jenis===g.k)).join("")}</div>
+    <div class="legend"><span><i style="background:linear-gradient(90deg,#DAA520,#D1495B,#4F6BC4,#1F9E89)"></i>Warna penuh = realisasi</span><span><i style="background:linear-gradient(90deg,#DAA520,#D1495B,#4F6BC4,#1F9E89);opacity:.3"></i>Warna transparan = pagu</span><span>Angka di kanan = % realisasi</span></div>
+    <div class="bars">${G.map((g,i)=>barRow(g, (i+1) + ". " + jenisLabel(g.k), g.k===TANPA?"":g.k, max, "jenis", g.k, st.f.jenis===g.k, ROSE_WARNA[i % ROSE_WARNA.length])).join("")}</div>
   </section>`;
 }
 /* ---- Rose chart (Nightingale): sudut sama, jari-jari ~ akar nilai ---- */
+const ROSE_WARNA = ["#DAA520","#E8833A","#D1495B","#A23B72","#7B4FA3","#4F6BC4","#2F8FC2","#1F9E89","#4CAF50","#9BBF30","#C99A2E","#7E8C97"];
 function roseJenis(G){
   const items = G.filter(g=>g.pagu>0 || g.real>0);
   if (!items.length) return "";
-  const cx = 170, cy = 170, R0 = 26, RM = 128;
+  const cx = 170, cy = 170, R0 = 30, RM = 140;
   const max = Math.max(...items.map(g=>Math.max(g.pagu,g.real)), 1);
   const rad = v => R0 + (RM - R0) * Math.sqrt(Math.max(v,0) / max);
+  const R0b = R0;
   const n = items.length, step = Math.PI*2 / n, gap = Math.min(0.04, step*0.12);
   let grid = "", pet = "", lab = "";
   [0.25, 0.5, 1].forEach(f=>{ const r = R0 + (RM-R0)*Math.sqrt(f);
@@ -785,17 +793,20 @@ function roseJenis(G){
     const sel = st.f.jenis === g.k, redup = st.f.jenis && !sel ? " redup" : "";
     const nm = jenisLabel(g.k);
     const tipA = `data-tip="${esc((i+1) + ". " + nm)}|${g.pagu}|${g.real}|${g.n}"`;
-    pet += `<g class="rose-p${redup}" data-type="jenis" data-key="${esc(g.k)}" ${tipA}>
+    const wr = ROSE_WARNA[i % ROSE_WARNA.length];
+    pet += `<g class="rose-p${redup}" data-type="jenis" data-key="${esc(g.k)}" ${tipA} style="--c:${wr}">
       <path d="${busur(cx,cy,R0,rad(g.pagu),a0,a1)}" class="rose-pagu"></path>
       ${g.real>0?`<path d="${busur(cx,cy,R0,rad(Math.min(g.real,g.pagu||g.real)),a0,a1)}" class="rose-real"></path>`:""}</g>`;
     const am = (a0+a1)/2, rl = rad(g.pagu) + 12;
-    lab += `<text x="${(cx+rl*Math.sin(am)).toFixed(1)}" y="${(cy-rl*Math.cos(am)+4).toFixed(1)}" text-anchor="middle" class="rose-lbl">${i+1}</text>`;
+    lab += `<circle cx="${(cx+rl*Math.sin(am)).toFixed(1)}" cy="${(cy-rl*Math.cos(am)).toFixed(1)}" r="8" fill="${wr}" class="rose-nb"></circle><text x="${(cx+rl*Math.sin(am)).toFixed(1)}" y="${(cy-rl*Math.cos(am)+3.5).toFixed(1)}" text-anchor="middle" class="rose-lbl">${i+1}</text>`;
   });
   const P = items.reduce((a,g)=>a+g.pagu,0), Rr = items.reduce((a,g)=>a+g.real,0);
   return `<div class="rose-wrap"><svg viewBox="0 0 340 340" class="rose" role="img" aria-label="Rose chart pagu dan realisasi per jenis belanja">
       ${grid}${pet}${lab}
-      <text x="${cx}" y="${cy+4}" text-anchor="middle" class="rose-c">${pctTxt(Rr,P)}</text></svg>
-    <p class="hint">Setiap kelopak = satu jenis belanja (nomor sesuai daftar di bawah). Kelopak warna muda = pagu, warna pekat = realisasi (sama seperti batang di bawah). Klik kelopak untuk memfilter.</p></div>`;
+      <circle cx="${cx}" cy="${cy}" r="${R0-3}" class="rose-mid"></circle>
+      <text x="${cx}" y="${cy+1}" text-anchor="middle" class="rose-c">${pctTxt(Rr,P)}</text>
+      <text x="${cx}" y="${cy+12}" text-anchor="middle" class="rose-c2">realisasi</text></svg>
+    <p class="hint">Setiap kelopak = satu jenis belanja (nomor sesuai daftar di bawah). Bagian transparan kelopak = pagu, bagian warna penuh = realisasi. Warna dan nomor sama dengan daftar di bawah. Klik kelopak untuk memfilter.</p></div>`;
 }
 /* ---- Grafik pie dua cincin: dalam = Bidang, luar = Sub Bidang ---- */
 const PIE_WARNA = ["var(--pie-1)","var(--pie-2)","var(--pie-3)","var(--pie-4)","var(--pie-5)","var(--pie-6)"];
