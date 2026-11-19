@@ -207,6 +207,8 @@ header.top .chip,header.top .btn{background:var(--surface);color:var(--text);bor
 .userchip b{font-weight:650}
 body.lvl-terbatas #btnReload, body.lvl-terbatas #btnSetting{display:none!important}
 body.lvl-tanpa-csv [data-act="csv"]{display:none!important}
+body.lvl-tanpa-lap #btnLap{display:none!important}
+body.lvl-tanpa-rincian [data-sec="rincian"],body.lvl-tanpa-rincian label.ck:has(input[value="rincian"]){display:none!important}
 #btnLogout[hidden],#userChip[hidden]{display:none}
 /* ---- Efek kaca (glassmorphism) — hanya di layar, tidak saat cetak ---- */
 :root{--glass:rgba(255,253,231,.55);--glass-2:rgba(255,253,231,.38);--glass-line:rgba(255,255,255,.65);--glass-head:rgba(54,69,79,.9);
@@ -1206,6 +1208,7 @@ function teksFilter(){
   return a.length ? a.join(" · ") : "Semua data (tanpa filter)";
 }
 function siapCetak(sec, metric, orient, size, brk){
+  if (st.user && (parseInt(st.user.level,10)||4) >= 5) sec = sec.filter(x => x !== "rincian");
   st.printing = true; st.printSec = sec; st.printBreak = brk;
   /* Judul tab dikosongkan sementara agar browser tidak mencetak "Dashboard Realisasi TKD" di tengah atas */
   if (judulAsli === null) judulAsli = document.title;
@@ -1314,6 +1317,8 @@ function terapkanPengguna(u){
   const lv = parseInt(u.level,10) || 4;
   document.body.classList.toggle("lvl-terbatas", lv >= 2);
   document.body.classList.toggle("lvl-tanpa-csv", lv >= 3);
+  document.body.classList.toggle("lvl-tanpa-lap", lv >= 3);      // Laporan TKD Tambahan Per OPD: hanya Level 1-2
+  document.body.classList.toggle("lvl-tanpa-rincian", lv >= 5);  // Level 6: tanpa Rincian Belanja
   const chip = document.getElementById("userChip");
   chip.hidden = false;
   chip.innerHTML = `<span class="u-skpd">${esc(u.nama)}</span>` +
@@ -1343,7 +1348,7 @@ document.getElementById("loginForm").addEventListener("submit", async ev=>{
   finally { btn.disabled = false; btn.textContent = "Masuk"; }
 });
 document.getElementById("btnLogout").addEventListener("click", ()=>{
-  hapusToken(); st.user = null; document.body.classList.remove("lvl-terbatas","lvl-tanpa-csv");
+  hapusToken(); st.user = null; document.body.classList.remove("lvl-terbatas","lvl-tanpa-csv","lvl-tanpa-lap","lvl-tanpa-rincian");
   document.getElementById("userChip").hidden = true; document.getElementById("btnLogout").hidden = true; document.getElementById("akunBox").hidden = true;
   st.f = {induk:"",skpd:"",jenis:""}; tampilLogin("Anda sudah keluar.");
 });
@@ -1606,8 +1611,9 @@ function lapExcel(){
   setTimeout(()=>URL.revokeObjectURL(a.href), 5000);
 }
 const dlgLap = document.getElementById("dlgLap");
+function levelSaya(){ return st.user ? (parseInt(st.user.level,10)||4) : 1; }
 function bukaLap(){
-  if (!st.data || !st.data.length) return;
+  if (!st.data || !st.data.length || levelSaya() >= 3) return;
   document.getElementById("lapIsi").innerHTML = lapHTML();
   dlgLap.showModal();
 }
