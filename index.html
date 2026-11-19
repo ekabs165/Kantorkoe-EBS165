@@ -243,6 +243,23 @@ body.lvl-tanpa-csv [data-act="csv"]{display:none!important}
   }
 }
 @media (prefers-reduced-motion: reduce){.card,.kpi{transition:none}.kpi:hover{transform:none}}
+/* ---- Grafik batang SKPD ---- */
+.kol-wrap{overflow-x:auto;margin:4px 0 8px;-webkit-overflow-scrolling:touch}
+.kol-svg{display:block}
+.kol-grid{stroke:var(--line);stroke-dasharray:3 3}
+.kol-base{stroke:var(--text-3)}
+.kol-ax{font-size:11px;fill:var(--text-3);font-variant-numeric:tabular-nums}
+.kol{cursor:pointer}
+.kol-hit{fill:transparent}
+.kol:hover .kol-pagu,.kol:hover .kol-real{filter:brightness(1.1)}
+.kol:hover .kol-lbl{fill:var(--text);font-weight:700}
+.kol.redup{opacity:.3}
+.kol-pagu{fill:var(--track)}
+.kol-real{fill:var(--fill)}
+.kol-pct{font-size:10.5px;font-weight:700;fill:var(--text-2);font-variant-numeric:tabular-nums}
+.kol-lbl{font-size:11px;fill:var(--text-2)}
+.kol-lbl.sel{font-weight:700;fill:var(--text)}
+@media print{.kol-wrap{overflow:visible}.kol-svg{max-width:100%;height:auto}}
 /* ---- Rose chart Jenis Belanja ---- */
 .rose-wrap{text-align:center;margin-bottom:8px}
 svg.rose{width:330px;max-width:100%;height:auto}
@@ -698,10 +715,48 @@ function cardSkpd(){
   const list = (st.skpdAll || st.printing) ? G : G.slice(0,15);
   return `<section class="card" data-sec="skpd"><div class="card-h"><h2>Realisasi per SKPD</h2>
     ${seg("skpdSort", st.skpdSort, [["pagu","Pagu terbesar"],["real","Realisasi terbesar"],["pct","% tertinggi"],["pctAsc","% terendah"]])}</div>
-    ${legendBar()}<div class="hint" style="margin-bottom:6px">Klik nama SKPD untuk memfilter seluruh dashboard.</div>
-    <div class="bars">${list.map(g=>barRow(g, g.k, "", max, "skpd", g.k, st.f.skpd===g.k)).join("")}</div>
+    <div class="legend"><span><i style="background:var(--fill)"></i>Realisasi</span><span><i style="background:var(--track)"></i>Pagu</span><span>Angka di atas batang = % realisasi</span></div><div class="hint" style="margin-bottom:6px">Klik batang untuk memfilter seluruh dashboard. Arahkan kursor untuk rincian${list.length>15?"; geser ke samping untuk melihat semua SKPD":""}.</div>
+    ${kolomSkpd(list)}
     ${G.length>15?`<button class="btn more" type="button" data-act="skpdAll">${st.skpdAll?"Tampilkan 15 teratas":"Tampilkan semua "+G.length+" SKPD"}</button>`:""}
   </section>`;
+}
+/* ---- Grafik batang (kolom) per SKPD ---- */
+function skalaRapi(max){
+  const e = Math.pow(10, Math.floor(Math.log10(max))); const f = max / e;
+  const step = (f <= 2 ? 0.5 : f <= 5 ? 1 : 2) * e;
+  return { step, top: Math.ceil(max / step) * step };
+}
+function kolomSkpd(list){
+  if (!list.length) return "";
+  const max = Math.max(...list.map(g=>Math.max(g.pagu,g.real)), 1);
+  const { step, top } = skalaRapi(max);
+  const L = 64, T = 22, H = 240, B = 150, KANAN = 120;
+  const lebar = (document.querySelector(".wrap")?.clientWidth || 1200) - 40;
+  const W = Math.max(46, Math.min(90, Math.floor((lebar - L - KANAN) / list.length)));
+  const width = L + list.length * W + KANAN, height = T + H + B;
+  const y = v => T + H - (v / top) * H;
+  let ax = "", kol = "";
+  for (let v = 0; v <= top + 1e-6; v += step){
+    ax += `<line x1="${L}" x2="${width-KANAN+10}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}" class="kol-grid"></line>
+      <text x="${L-6}" y="${(y(v)+4).toFixed(1)}" text-anchor="end" class="kol-ax">${v ? rpSingkat(v).replace("Rp","") : "0"}</text>`;
+  }
+  list.forEach((g,i)=>{
+    const w = Math.min(W - 12, 44), x = L + i*W + (W - w)/2;
+    const sel = st.f.skpd === g.k, redup = st.f.skpd && !sel ? " redup" : "";
+    const pctv = g.pagu > 0 ? g.real / g.pagu * 100 : 0;
+    const yp = y(g.pagu), yr = y(Math.min(g.real, top));
+    const nm = g.k.length > 30 ? g.k.slice(0, 29) + "…" : g.k;
+    const tx = x + w/2, ty = T + H + 10;
+    kol += `<g class="kol${redup}" data-type="skpd" data-key="${esc(g.k)}" data-tip="${esc(g.k)}|${g.pagu}|${g.real}|${g.n}">
+      <rect x="${x-3}" y="${T}" width="${w+6}" height="${H}" class="kol-hit"></rect>
+      <rect x="${x}" y="${yp.toFixed(1)}" width="${w}" height="${Math.max(0,T+H-yp).toFixed(1)}" rx="3" class="kol-pagu"></rect>
+      <rect x="${x+w*0.18}" y="${yr.toFixed(1)}" width="${w*0.64}" height="${Math.max(0,T+H-yr).toFixed(1)}" rx="2" class="kol-real"></rect>
+      <text x="${tx}" y="${(yp-5).toFixed(1)}" text-anchor="middle" class="kol-pct">${pctv.toLocaleString("id-ID",{maximumFractionDigits:0})}%</text>
+      <text transform="translate(${tx-4},${ty}) rotate(45)" text-anchor="start" class="kol-lbl${sel?" sel":""}">${esc(nm)}</text></g>`;
+  });
+  return `<div class="kol-wrap"><svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" class="kol-svg" role="img" aria-label="Grafik batang pagu dan realisasi per SKPD">
+    <text x="${L-6}" y="12" text-anchor="end" class="kol-ax">Rp</text>${ax}${kol}
+    <line x1="${L}" x2="${width-KANAN+10}" y1="${T+H}" y2="${T+H}" class="kol-base"></line></svg></div>`;
 }
 function cardJenis(){
   const D = filtered(st.printing ? null : "jenis");
@@ -940,6 +995,7 @@ function bindCards(){
     el.addEventListener("keydown", e=>{ if (e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } });
   });
   app.querySelectorAll("tr.click").forEach(el=> el.addEventListener("click", ()=> setFilter("induk", el.dataset.induk)));
+  app.querySelectorAll(".kol").forEach(el=> el.addEventListener("click", ()=> setFilter(el.dataset.type, el.dataset.key)));
   app.querySelectorAll(".rose-p").forEach(el=> el.addEventListener("click", ()=> setFilter(el.dataset.type, el.dataset.key)));
   app.querySelectorAll("[data-pie]").forEach(el=> el.addEventListener("click", ()=> setFilter("induk", el.dataset.pie)));
   app.querySelectorAll(".hm td.c").forEach(el=> el.addEventListener("click", ()=>{
