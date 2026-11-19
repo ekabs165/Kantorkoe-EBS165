@@ -1478,13 +1478,13 @@ function lapHTML(){
   const baris = (r, i, total) => `<tr class="${total?"lap-tot":""}"><td class="c">${total?"":i+1}</td><td>${total?"JUMLAH":esc(r.opd)}</td>` +
     G.map(g=>`<td class="n">${lapAngka(r.pagu[g])}</td>`).join("") + `<td class="n b">${lapAngka(r.tp)}</td>` +
     G.map(g=>`<td class="n">${lapAngka(r.real[g])}</td><td class="n p">${lapPct(r.real[g], r.pagu[g])}</td>`).join("") +
-    `<td class="n b">${lapAngka(r.tr)}</td><td class="n p b">${lapPct(r.tr, r.tp)}</td><td>${total?"":r.n+" paket"}</td></tr>`;
+    `<td class="n b">${lapAngka(r.tr)}</td><td class="n p b">${lapPct(r.tr, r.tp)}</td><td></td></tr>`;
   return `<div class="lap-kop">${logoSiap?`<img src="${esc(PENGATURAN.LOGO)}" alt="">`:""}<div><h2>${LAP_JUDUL}</h2><div class="lap-sub">${esc(PENGATURAN.SUBJUDUL)}${lapKeadaan()?" · "+esc(lapKeadaan()):""}</div></div></div>
   <div class="lap-scroll"><table class="lap-tbl"><thead>
     <tr><th rowspan="2">No</th><th rowspan="2">OPD</th><th colspan="${G.length}">Pagu</th><th rowspan="2">Total Pagu</th><th colspan="${G.length*2}">Realisasi</th><th rowspan="2">Total Realisasi</th><th rowspan="2">%</th><th rowspan="2">Keterangan</th></tr>
     <tr>${G.map(g=>`<th>${NAMA[g]}</th>`).join("")}${G.map(g=>`<th>${NAMA[g]}</th><th>%</th>`).join("")}</tr>
   </thead><tbody>${rows.map((r,i)=>baris(r,i,false)).join("")}${baris(tot,0,true)}</tbody></table></div>
-  <div class="lap-cat">Angka dalam Rupiah. % = realisasi dibagi pagu × 100. Keterangan = jumlah rincian belanja (paket) di data sumber.</div>`;
+  <div class="lap-cat">Angka dalam Rupiah. % = realisasi dibagi pagu × 100.</div>`;
 }
 
 /* ---- Penulis XLSX mandiri (tanpa pustaka luar) ---- */
@@ -1543,11 +1543,11 @@ function lapExcel(){
       sel(r,c+1, N(o.pagu[g]>0 ? o.real[g]/o.pagu[g]*100 : 0, B?8:5, `IFERROR(${L(c)}${r}/${L(cp)}${r}*100,0)`)); });
     sel(r,cTR, N(o.tr, 7, G.map((g,k)=>`${L(cR+k*2)}${r}`).join("+")));
     sel(r,cPct, N(o.tp>0 ? o.tr/o.tp*100 : 0, 8, `IFERROR(${L(cTR)}${r}/${L(cTP)}${r}*100,0)`));
-    sel(r,cKet, S(total ? "" : o.n + " paket", total ? 6 : 3));
+    sel(r,cKet, S("", total ? 6 : 3));
   };
   rows.forEach((o,i)=> tulis(r0+i, o, false, i));
   const rT = r0 + rows.length; tulis(rT, tot, true);
-  sel(rT+2, 0, S("Catatan: angka dalam Rupiah; % = realisasi / pagu × 100; Keterangan = jumlah rincian belanja (paket) di data sumber.", 11));
+  sel(rT+2, 0, S("Catatan: angka dalam Rupiah; % = realisasi / pagu × 100.", 11));
   // XML lembar
   let sd = "";
   for (let r=1; r<sheet.length; r++){
