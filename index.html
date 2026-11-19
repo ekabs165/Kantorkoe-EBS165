@@ -243,6 +243,23 @@ body.lvl-tanpa-csv [data-act="csv"]{display:none!important}
   }
 }
 @media (prefers-reduced-motion: reduce){.card,.kpi{transition:none}.kpi:hover{transform:none}}
+/* ---- Grafik pie Bidang ---- */
+:root{--pie-1:#DAA520;--pie-2:#36454F;--pie-3:#5B8A72;--pie-4:#B5603F;--pie-5:#6F7FA8;--pie-6:#8E6C8A}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--pie-2:#A9BCC9}}
+:root[data-theme="dark"]{--pie-2:#A9BCC9}
+.pie-wrap{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;margin-bottom:6px}
+svg.pie{width:230px;max-width:100%;height:auto;flex:none}
+.pie-seg{stroke:var(--surface);stroke-width:1.5;cursor:pointer;transition:opacity .15s}
+.pie-seg:hover{opacity:1!important;filter:brightness(1.08)}
+.pie-c1{font-size:12px;fill:var(--text-3)}.pie-c2{font-size:20px;font-weight:700;fill:var(--text)}.pie-c3{font-size:11px;fill:var(--text-2)}
+.pie-leg{list-style:none;margin:0;padding:0;flex:1 1 220px;min-width:0;display:grid;gap:6px}
+.pie-leg li{display:grid;grid-template-columns:12px minmax(0,1fr) auto;gap:2px 8px;align-items:center;padding:6px 8px;border-radius:8px;cursor:pointer}
+.pie-leg li:hover,.pie-leg li.sel{background:var(--surface-2)}
+.pie-leg i{width:12px;height:12px;border-radius:3px}
+.pie-leg .nm{font-size:13px;font-weight:600;overflow-wrap:anywhere}.pie-leg .v{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+.pie-leg .d{grid-column:2 / -1;font-size:12px;color:var(--text-3);font-variant-numeric:tabular-nums}
+.pie-ket{margin:0 0 10px}
+@media print{svg.pie{width:200px}.pie-seg{stroke:#fff}.pie-ket{display:block!important}}
 /* ---- Cetak ---- */
 .print-only{display:none}
 #dlgPrint .grp{border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin:10px 0}
@@ -570,7 +587,7 @@ function bacaGrid(grid){
 const st = {
   data: null, cat: null, sumber: "", waktu: null,
   f: { induk:"", skpd:"", jenis:"" },
-  skpdSort: "pagu", skpdAll: false, jenisSort: "pagu", hmMetric: "real",
+  skpdSort: "pagu", skpdAll: false, jenisSort: "pagu", hmMetric: "real", pieMetric: "pagu",
   q: "", sortKey: "pagu", sortDir: -1, page: 0, pageSize: 25
 };
 
@@ -683,6 +700,60 @@ function cardJenis(){
     <div class="bars">${G.map(g=>barRow(g, jenisLabel(g.k), g.k===TANPA?"":g.k, max, "jenis", g.k, st.f.jenis===g.k)).join("")}</div>
   </section>`;
 }
+/* ---- Grafik pie dua cincin: dalam = Bidang, luar = Sub Bidang ---- */
+const PIE_WARNA = ["var(--pie-1)","var(--pie-2)","var(--pie-3)","var(--pie-4)","var(--pie-5)","var(--pie-6)"];
+function busur(cx, cy, r0, r1, a0, a1){
+  if (a1 - a0 >= Math.PI*2 - 1e-6) a1 = a0 + Math.PI*2 - 1e-4;
+  const p = (r,a)=> (cx + r*Math.sin(a)).toFixed(2) + " " + (cy - r*Math.cos(a)).toFixed(2);
+  const big = (a1 - a0) > Math.PI ? 1 : 0;
+  return `M${p(r1,a0)} A${r1} ${r1} 0 ${big} 1 ${p(r1,a1)} L${p(r0,a1)} A${r0} ${r0} 0 ${big} 0 ${p(r0,a0)} Z`;
+}
+function pieBidang(D, order){
+  const key = st.pieMetric === "real" ? "real" : "pagu";
+  const T = sum(D, key);
+  if (!(T > 0)) return `<p class="hint">Belum ada ${key==="real"?"realisasi":"pagu"} untuk ditampilkan.</p>`;
+  const P = sum(D,"pagu"), R = sum(D,"real");
+  const cx = 130, cy = 130;
+  let a = 0, inner = "", outer = "", leg = "";
+  order.forEach((ind, i)=>{
+    const di = D.filter(d=>d.induk===ind); const vi = sum(di, key);
+    if (!(vi > 0)) return;
+    const warna = PIE_WARNA[i % PIE_WARNA.length];
+    const pi = sum(di,"pagu"), ri = sum(di,"real");
+    const sel = st.f.induk && (st.f.induk === ind || st.f.induk.startsWith(ind + " › "));
+    const redup = st.f.induk && !sel ? ' opacity=".35"' : "";
+    const a1 = a + vi / T * Math.PI * 2;
+    inner += `<path d="${busur(cx,cy,58,92,a,a1)}" fill="${warna}"${redup} class="pie-seg" data-pie="${esc(ind)}" data-tip="${esc(ind)}|${pi}|${ri}|${di.length}"></path>`;
+    // sub bidang
+    const subs = []; const ss = new Set();
+    for (const d of di){ if (!ss.has(d.sub)){ ss.add(d.sub); subs.push(d.sub); } }
+    let b = a;
+    subs.forEach((sb, j)=>{
+      const ds = di.filter(d=>d.sub===sb); const vs = sum(ds, key);
+      if (!(vs > 0)) return;
+      const b1 = b + vs / T * Math.PI * 2;
+      const nm = ind + " › " + sb;
+      const op = st.f.induk && st.f.induk !== nm && st.f.induk !== ind ? .3 : (j % 2 ? .55 : .8);
+      outer += `<path d="${busur(cx,cy,96,124,b,b1)}" fill="${warna}" opacity="${op}" class="pie-seg" data-pie="${esc(nm)}" data-tip="${esc(nm)}|${sum(ds,"pagu")}|${sum(ds,"real")}|${ds.length}"></path>`;
+      b = b1;
+    });
+    leg += `<li class="click-pie${sel?" sel":""}" data-pie="${esc(ind)}"><i style="background:${warna}"></i><span class="nm">${esc(ind)}</span>
+      <span class="v">${(vi/T*100).toLocaleString("id-ID",{minimumFractionDigits:1,maximumFractionDigits:1})}%</span>
+      <span class="d">${rpSingkat(pi)} · real. ${pctTxt(ri,pi)}</span></li>`;
+    a = a1;
+  });
+  const judul = key === "real" ? "Realisasi" : "Pagu";
+  return `<div class="pie-wrap">
+    <svg viewBox="0 0 260 260" class="pie" role="img" aria-label="Komposisi ${judul.toLowerCase()} per Bidang dan Sub Bidang">
+      ${inner}${outer}
+      <text x="${cx}" y="${cy-8}" text-anchor="middle" class="pie-c1">${judul}</text>
+      <text x="${cx}" y="${cy+14}" text-anchor="middle" class="pie-c2">${rpSingkat(T)}</text>
+      <text x="${cx}" y="${cy+32}" text-anchor="middle" class="pie-c3">Realisasi ${pctTxt(R,P)}</text>
+    </svg>
+    <ul class="pie-leg">${leg}</ul>
+  </div>
+  <p class="hint pie-ket">Cincin dalam = Bidang, cincin luar = Sub Bidang. Persentase = porsi dari total ${judul.toLowerCase()}. Klik irisan untuk memfilter.</p>`;
+}
 function cardInduk(){
   const D = filtered(st.printing ? null : "induk");
   const order = []; const seen = new Set();
@@ -702,7 +773,8 @@ function cardInduk(){
     }
   }
   rows += `<tr class="total"><td>JUMLAH</td><td class="n">${rpSingkat(P)}</td><td class="n">${rpSingkat(R)}</td><td class="n">${pctTxt(R,P)}</td></tr>`;
-  return `<section class="card" data-sec="induk"><div class="card-h"><h2>Per Bidang dan Sub Bidang</h2><span class="hint">Klik baris untuk memfilter</span></div>
+  return `<section class="card" data-sec="induk"><div class="card-h"><h2>Per Bidang dan Sub Bidang</h2>${seg("pieMetric", st.pieMetric, [["pagu","Pagu"],["real","Realisasi"]])}</div>
+    ${pieBidang(D, order)}
     <div class="scroll"><table class="tbl"><thead><tr><th>Bidang / Sub Bidang</th><th class="n">Pagu</th><th class="n">Realisasi</th><th class="n">%</th></tr></thead><tbody>${rows}</tbody></table></div></section>`;
 }
 function mini(r,p){ const w = p>0?Math.min(100,r/p*100):0; return `<span class="mini" aria-hidden="true"><span style="width:${w}%"></span></span>`; }
@@ -826,6 +898,7 @@ function bindCards(){
     el.addEventListener("keydown", e=>{ if (e.key==="Enter"||e.key===" "){ e.preventDefault(); go(); } });
   });
   app.querySelectorAll("tr.click").forEach(el=> el.addEventListener("click", ()=> setFilter("induk", el.dataset.induk)));
+  app.querySelectorAll("[data-pie]").forEach(el=> el.addEventListener("click", ()=> setFilter("induk", el.dataset.pie)));
   app.querySelectorAll(".hm td.c").forEach(el=> el.addEventListener("click", ()=>{
     st.f.skpd = el.dataset.skpd; st.f.jenis = el.dataset.jenis; st.page=0; syncSelects(); render();
     document.getElementById("dt").scrollIntoView({behavior:"smooth",block:"start"});
