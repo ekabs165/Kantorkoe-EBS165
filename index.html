@@ -357,11 +357,9 @@ svg.pie{width:230px;max-width:100%;height:auto;flex:none}
   *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
   body{background:#fff;font-size:11px}
   .wrap{max-width:none;padding:0}
-  body{padding:10mm 10mm 12mm;-webkit-box-decoration-break:clone;box-decoration-break:clone}
   header.top,.filters,.btn,.seg,.dtools,.pager,#tip,.notice,.hint,dialog,footer,.noprint{display:none!important}
   .print-only{display:block}
-  #printHead{border-bottom:3px solid #DAA520;padding-bottom:6px;margin-bottom:10px;text-align:right;overflow:hidden}
-  #printHead .logo{float:right;margin:0 0 0 12px}
+  #printHead{border-bottom:3px solid #DAA520;padding-bottom:6px;margin-bottom:10px}
   #printHead h1{font-size:17px;margin:0;color:#36454F}
   #printHead .m{font-size:11px;color:#36454F;margin-top:2px}
   .kpis{grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:10px}
@@ -1167,9 +1165,7 @@ function siapCetak(sec, metric, orient, size, brk){
   st.printing = true; st.printSec = sec; st.printBreak = brk;
   if (metric) st.hmMetric = metric;
   const ukuran = size==="Legal" ? (orient==="portrait" ? "215mm 330mm" : "330mm 215mm") : ("A4" + (orient==="portrait" ? " portrait" : " landscape"));
-  /* margin halaman 0 → header/footer bawaan browser (tanggal, judul tab, URL) tidak tercetak;
-     jarak tepi diganti padding yang diulang di setiap halaman */
-  pageStyle.textContent = "@page{size:" + ukuran + ";margin:0}";
+  pageStyle.textContent = "@page{size:" + ukuran + ";margin:10mm 10mm 12mm}";
   const sumber = document.getElementById("srcText").textContent;
   document.getElementById("printHead").innerHTML =
     (logoSiap ? `<img class="logo" src="${esc(PENGATURAN.LOGO)}" alt="">` : "") +
