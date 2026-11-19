@@ -254,8 +254,13 @@ body.lvl-tanpa-csv [data-act="csv"]{display:none!important}
 .kol:hover .kol-pagu,.kol:hover .kol-real{filter:brightness(1.1)}
 .kol:hover .kol-lbl{fill:var(--text);font-weight:700}
 .kol.redup{opacity:.3}
-.kol-pagu{fill:var(--track)}
-.kol-real{fill:var(--fill)}
+:root{--kp-a:#F6E7B0;--kp-b:#E9D48E}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--kp-a:#55646F;--kp-b:#3F4D57}}
+:root[data-theme="dark"]{--kp-a:#55646F;--kp-b:#3F4D57}
+.kol-real{filter:drop-shadow(0 2px 3px rgba(0,0,0,.2))}
+.kol .kc-Rendah{fill:#C0392B}.kol .kc-Sedang{fill:#C8661A}.kol .kc-Baik{fill:#A87C10}.kol .kc-Tinggi{fill:#1E8E5A}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .kol .kc-Rendah{fill:#F48A8A}:root:not([data-theme="light"]) .kol .kc-Sedang{fill:#F7B061}:root:not([data-theme="light"]) .kol .kc-Baik{fill:#F2CE55}:root:not([data-theme="light"]) .kol .kc-Tinggi{fill:#6FD3A4}}
+:root[data-theme="dark"] .kol .kc-Rendah{fill:#F48A8A}:root[data-theme="dark"] .kol .kc-Sedang{fill:#F7B061}:root[data-theme="dark"] .kol .kc-Baik{fill:#F2CE55}:root[data-theme="dark"] .kol .kc-Tinggi{fill:#6FD3A4}
 .kol-pct{font-size:10.5px;font-weight:700;fill:var(--text-2);font-variant-numeric:tabular-nums}
 .kol-lbl{font-size:11px;fill:var(--text-2)}
 .kol-lbl.sel{font-weight:700;fill:var(--text)}
@@ -721,12 +726,20 @@ function cardSkpd(){
   const list = (st.skpdAll || st.printing) ? G : G.slice(0,15);
   return `<section class="card" data-sec="skpd"><div class="card-h"><h2>Realisasi per SKPD</h2>
     ${seg("skpdSort", st.skpdSort, [["pagu","Pagu terbesar"],["real","Realisasi terbesar"],["pct","% tertinggi"],["pctAsc","% terendah"]])}</div>
-    <div class="legend"><span><i style="background:var(--fill)"></i>Realisasi</span><span><i style="background:var(--track)"></i>Pagu</span><span>Angka di atas batang = % realisasi</span></div><div class="hint" style="margin-bottom:6px">Klik batang untuk memfilter seluruh dashboard. Arahkan kursor untuk rincian${list.length>15?"; geser ke samping untuk melihat semua SKPD":""}.</div>
+    <div class="legend"><span><i style="background:var(--track)"></i>Pagu</span>${KAPAI.map(k=>`<span><i style="background:linear-gradient(${k.a},${k.b})"></i>Realisasi ${k.label}</span>`).join("")}<span>Angka di atas batang = % realisasi</span></div><div class="hint" style="margin-bottom:6px">Klik batang untuk memfilter seluruh dashboard. Arahkan kursor untuk rincian${list.length>15?"; geser ke samping untuk melihat semua SKPD":""}.</div>
     ${kolomSkpd(list)}
     ${G.length>15?`<button class="btn more" type="button" data-act="skpdAll">${st.skpdAll?"Tampilkan 15 teratas":"Tampilkan semua "+G.length+" SKPD"}</button>`:""}
   </section>`;
 }
 /* ---- Grafik batang (kolom) per SKPD ---- */
+/* Warna batang realisasi menurut capaian (% realisasi terhadap pagu) */
+const KAPAI = [
+  { id:"Rendah", batas:25,  a:"#F06A6A", b:"#C0392B", label:"< 25%" },
+  { id:"Sedang", batas:50,  a:"#F7A54A", b:"#D9771C", label:"25–49%" },
+  { id:"Baik",   batas:75,  a:"#F2CE55", b:"#DAA520", label:"50–74%" },
+  { id:"Tinggi", batas:1e9, a:"#4FC08D", b:"#1E8E5A", label:"≥ 75%" }
+];
+function capaian(p){ return KAPAI.find(k=> p < k.batas).id; }
 function skalaRapi(max){
   const e = Math.pow(10, Math.floor(Math.log10(max))); const f = max / e;
   const step = (f <= 2 ? 0.5 : f <= 5 ? 1 : 2) * e;
@@ -737,7 +750,7 @@ function kolomSkpd(list){
   const max = Math.max(...list.map(g=>Math.max(g.pagu,g.real)), 1);
   const { step, top } = skalaRapi(max);
   const L = 64, T = 22, H = 240, B = 150, KANAN = 120;
-  const lebar = (document.querySelector(".wrap")?.clientWidth || 1200) - 40;
+  const lebar = (document.querySelector(".wrap")?.clientWidth || 1200) - 72;
   const W = Math.max(46, Math.min(90, Math.floor((lebar - L - KANAN) / list.length)));
   const width = L + list.length * W + KANAN, height = T + H + B;
   const y = v => T + H - (v / top) * H;
@@ -755,12 +768,16 @@ function kolomSkpd(list){
     const tx = x + w/2, ty = T + H + 10;
     kol += `<g class="kol${redup}" data-type="skpd" data-key="${esc(g.k)}" data-tip="${esc(g.k)}|${g.pagu}|${g.real}|${g.n}">
       <rect x="${x-3}" y="${T}" width="${w+6}" height="${H}" class="kol-hit"></rect>
-      <rect x="${x}" y="${yp.toFixed(1)}" width="${w}" height="${Math.max(0,T+H-yp).toFixed(1)}" rx="3" class="kol-pagu"></rect>
-      <rect x="${x+w*0.18}" y="${yr.toFixed(1)}" width="${w*0.64}" height="${Math.max(0,T+H-yr).toFixed(1)}" rx="2" class="kol-real"></rect>
-      <text x="${tx}" y="${(yp-5).toFixed(1)}" text-anchor="middle" class="kol-pct">${pctv.toLocaleString("id-ID",{maximumFractionDigits:0})}%</text>
+      <rect x="${x}" y="${yp.toFixed(1)}" width="${w}" height="${Math.max(0,T+H-yp).toFixed(1)}" rx="5" class="kol-pagu" fill="url(#kgPagu)"></rect>
+      <rect x="${x+w*0.16}" y="${yr.toFixed(1)}" width="${w*0.68}" height="${Math.max(0,T+H-yr).toFixed(1)}" rx="4" class="kol-real" fill="url(#kg${capaian(pctv)})"></rect>
+      <text x="${tx}" y="${(yp-6).toFixed(1)}" text-anchor="middle" class="kol-pct kc-${capaian(pctv)}">${pctv.toLocaleString("id-ID",{maximumFractionDigits:0})}%</text>
       <text transform="translate(${tx-4},${ty}) rotate(45)" text-anchor="start" class="kol-lbl${sel?" sel":""}">${esc(nm)}</text></g>`;
   });
   return `<div class="kol-wrap"><svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" class="kol-svg" role="img" aria-label="Grafik batang pagu dan realisasi per SKPD">
+    <defs>
+      <linearGradient id="kgPagu" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--kp-a)"/><stop offset="1" stop-color="var(--kp-b)"/></linearGradient>
+      ${KAPAI.map(k=>`<linearGradient id="kg${k.id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${k.a}"/><stop offset="1" stop-color="${k.b}"/></linearGradient>`).join("")}
+    </defs>
     <text x="${L-6}" y="12" text-anchor="end" class="kol-ax">Rp</text>${ax}${kol}
     <line x1="${L}" x2="${width-KANAN+10}" y1="${T+H}" y2="${T+H}" class="kol-base"></line></svg></div>`;
 }
