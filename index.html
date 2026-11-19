@@ -663,6 +663,7 @@ function bacaGrid(grid){
     update: cari(x => x.startsWith("update terakhir")),
     ketUbah: cari(x => x.startsWith("keterangan perubahan")),
     ketFinal: cari(x => x === "ket final"),
+    paket: cari(x => x === "ket paket fisik" || x.startsWith("ket paket") || x === "jumlah paket pekerjaan fisik"),
     namaRek: cari(x => x.startsWith("nama rekening")),
     pagu: cari(x => x.startsWith("jumlah") || x.includes("pagu") || x.includes("(rka)")),
     real: cari(x => x.startsWith("realisasi")),
@@ -700,7 +701,7 @@ function bacaGrid(grid){
       baris: i+1, induk, sub, indukSub: induk + " › " + sub,
       skpd: nama || "(Tanpa SKPD)", kodeSkpd, kodeSub, subKeg: subk,
       jenis, norek, namaRek: s(r,"namaRek"), dasar: s(r,"dasar"), pagu, real,
-      kdProg: s(r,"kdProg"), kdKeg: s(r,"kdKeg"), update: s(r,"update"), ketUbah: s(r,"ketUbah"), ketFinal: s(r,"ketFinal")
+      kdProg: s(r,"kdProg"), kdKeg: s(r,"kdKeg"), update: s(r,"update"), ketUbah: s(r,"ketUbah"), ketFinal: s(r,"ketFinal"), paket: toNum(g(r,"paket"))
     });
   }
   if (!rec.length) throw new Error("Tidak ada baris \"isian data\" yang terbaca.");
@@ -1460,9 +1461,9 @@ function lapData(){
   const m = new Map();
   for (const d of (st.data||[])){
     const k = d.skpd || "(tanpa SKPD)";
-    if (!m.has(k)) m.set(k, { opd:k, pagu:{peg:0,bj:0,mod:0,lain:0}, real:{peg:0,bj:0,mod:0,lain:0}, n:0, pertama:m.size });
+    if (!m.has(k)) m.set(k, { opd:k, pagu:{peg:0,bj:0,mod:0,lain:0}, real:{peg:0,bj:0,mod:0,lain:0}, n:0, paket:0, pertama:m.size });
     const o = m.get(k), g = lapKelompok(d.jenis);
-    o.pagu[g] += d.pagu||0; o.real[g] += d.real||0; o.n++;
+    o.pagu[g] += d.pagu||0; o.real[g] += d.real||0; o.paket += d.paket||0; o.n++;
   }
   const rows = [...m.values()].sort((a,b)=>{
     const ua = urut.has(kunci(a.opd)) ? urut.get(kunci(a.opd)) : 1000 + a.pertama;
@@ -1470,12 +1471,13 @@ function lapData(){
     return ua - ub;
   });
   rows.forEach(r=>{ r.tp = r.pagu.peg+r.pagu.bj+r.pagu.mod+r.pagu.lain; r.tr = r.real.peg+r.real.bj+r.real.mod+r.real.lain; });
-  const tot = { pagu:{peg:0,bj:0,mod:0,lain:0}, real:{peg:0,bj:0,mod:0,lain:0}, n:0, tp:0, tr:0 };
-  rows.forEach(r=>{ for (const g of ["peg","bj","mod","lain"]){ tot.pagu[g]+=r.pagu[g]; tot.real[g]+=r.real[g]; } tot.n+=r.n; tot.tp+=r.tp; tot.tr+=r.tr; });
+  const tot = { pagu:{peg:0,bj:0,mod:0,lain:0}, real:{peg:0,bj:0,mod:0,lain:0}, n:0, paket:0, tp:0, tr:0 };
+  rows.forEach(r=>{ for (const g of ["peg","bj","mod","lain"]){ tot.pagu[g]+=r.pagu[g]; tot.real[g]+=r.real[g]; } tot.n+=r.n; tot.paket+=r.paket; tot.tp+=r.tp; tot.tr+=r.tr; });
   return { rows, tot, adaLain: tot.pagu.lain > 0 || tot.real.lain > 0 };
 }
 const lapAngka = v => (Math.round((v||0)*100)/100).toLocaleString("id-ID",{minimumFractionDigits:2,maximumFractionDigits:2});
 const lapPct = (r,p) => (p>0 ? r/p*100 : 0).toLocaleString("id-ID",{minimumFractionDigits:2,maximumFractionDigits:2});
+const lapPaket = v => v ? (Math.round(v*100)/100).toLocaleString("id-ID") + " paket" : "";
 function lapKeadaan(){ return st.waktu ? "Keadaan data per " + jam(st.waktu) : ""; }
 function lapHTML(){
   const { rows, tot, adaLain } = lapData();
@@ -1484,10 +1486,10 @@ function lapHTML(){
   const baris = (r, i, total) => `<tr class="${total?"lap-tot":""}"><td class="c">${total?"":i+1}</td><td>${total?"JUMLAH":esc(r.opd)}</td>` +
     G.map(g=>`<td class="n">${lapAngka(r.pagu[g])}</td>`).join("") + `<td class="n b">${lapAngka(r.tp)}</td>` +
     G.map(g=>`<td class="n">${lapAngka(r.real[g])}</td><td class="n p">${lapPct(r.real[g], r.pagu[g])}</td>`).join("") +
-    `<td class="n b">${lapAngka(r.tr)}</td><td class="n p b">${lapPct(r.tr, r.tp)}</td><td></td></tr>`;
+    `<td class="n b">${lapAngka(r.tr)}</td><td class="n p b">${lapPct(r.tr, r.tp)}</td><td class="c${total?" b":""}">${lapPaket(r.paket)}</td></tr>`;
   return `<div class="lap-kop">${logoSiap?`<img src="${esc(PENGATURAN.LOGO)}" alt="">`:""}<div><h2>${LAP_JUDUL}</h2><div class="lap-sub">${esc(PENGATURAN.SUBJUDUL)}${lapKeadaan()?" · "+esc(lapKeadaan()):""}</div></div></div>
   <div class="lap-scroll"><table class="lap-tbl"><thead>
-    <tr><th rowspan="2">No</th><th rowspan="2">OPD</th><th colspan="${G.length}">Pagu</th><th rowspan="2">Total Pagu</th><th colspan="${G.length*2}">Realisasi</th><th rowspan="2">Total Realisasi</th><th rowspan="2">%</th><th rowspan="2">Keterangan</th></tr>
+    <tr><th rowspan="2">No</th><th rowspan="2">OPD</th><th colspan="${G.length}">Pagu</th><th rowspan="2">Total Pagu</th><th colspan="${G.length*2}">Realisasi</th><th rowspan="2">Total Realisasi</th><th rowspan="2">%</th><th rowspan="2">Ket Paket Fisik</th></tr>
     <tr>${G.map(g=>`<th>${NAMA[g]}</th>`).join("")}${G.map(g=>`<th>${NAMA[g]}</th><th>%</th>`).join("")}</tr>
   </thead><tbody>${rows.map((r,i)=>baris(r,i,false)).join("")}${baris(tot,0,true)}</tbody></table></div>
   <div class="lap-cat">Angka dalam Rupiah. % = realisasi dibagi pagu × 100.</div>`;
@@ -1535,7 +1537,7 @@ function lapExcel(){
   h(5,cR,"Realisasi"); merges.push(`${L(cR)}5:${L(cTR-1)}5`); G.forEach((g,i)=>{ h(6,cR+i*2,NAMA[g]); h(6,cR+i*2+1,"%"); });
   h(5,cTR,"Total Realisasi"); merges.push(`${L(cTR)}5:${L(cTR)}6`);
   h(5,cPct,"%"); merges.push(`${L(cPct)}5:${L(cPct)}6`);
-  h(5,cKet,"Keterangan"); merges.push(`${L(cKet)}5:${L(cKet)}6`);
+  h(5,cKet,"Ket Paket Fisik"); merges.push(`${L(cKet)}5:${L(cKet)}6`);
   const r0 = 7;
   const tulis = (r, o, total, i) => {
     const B = total ? 1 : 0; // gaya tebal untuk JUMLAH
@@ -1549,7 +1551,7 @@ function lapExcel(){
       sel(r,c+1, N(o.pagu[g]>0 ? o.real[g]/o.pagu[g]*100 : 0, B?8:5, `IFERROR(${L(c)}${r}/${L(cp)}${r}*100,0)`)); });
     sel(r,cTR, N(o.tr, 7, G.map((g,k)=>`${L(cR+k*2)}${r}`).join("+")));
     sel(r,cPct, N(o.tp>0 ? o.tr/o.tp*100 : 0, 8, `IFERROR(${L(cTR)}${r}/${L(cTP)}${r}*100,0)`));
-    sel(r,cKet, S("", total ? 6 : 3));
+    sel(r,cKet, o.paket ? N(o.paket, total ? 12 : 9, total ? `SUM(${L(cKet)}${r0}:${L(cKet)}${r-1})` : null) : S("", total ? 6 : 3));
   };
   rows.forEach((o,i)=> tulis(r0+i, o, false, i));
   const rT = r0 + rows.length; tulis(rT, tot, true);
@@ -1583,7 +1585,7 @@ function lapExcel(){
 <fills count="4"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFCE9A6"/><bgColor indexed="64"/></patternFill></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFF7D6"/><bgColor indexed="64"/></patternFill></fill></fills>
 <borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"/><right style="thin"/><top style="thin"/><bottom style="thin"/><diagonal/></border></borders>
 <cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>
-<cellXfs count="12">
+<cellXfs count="13">
 <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>
 <xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
 <xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center" wrapText="1"/></xf>
@@ -1596,6 +1598,7 @@ function lapExcel(){
 <xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
 <xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment horizontal="center"/></xf>
 <xf numFmtId="0" fontId="3" fillId="0" borderId="0" xfId="0" applyFont="1"/>
+<xf numFmtId="0" fontId="1" fillId="3" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1" applyAlignment="1"><alignment horizontal="center" vertical="center"/></xf>
 </cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>`;
   const files = [
     { name:"[Content_Types].xml", data:`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>` },
