@@ -1163,6 +1163,9 @@ function teksFilter(){
 }
 function siapCetak(sec, metric, orient, size, brk){
   st.printing = true; st.printSec = sec; st.printBreak = brk;
+  /* Judul tab dikosongkan sementara agar browser tidak mencetak "Dashboard Realisasi TKD" di tengah atas */
+  if (judulAsli === null) judulAsli = document.title;
+  document.title = "\u00A0";
   if (metric) st.hmMetric = metric;
   const ukuran = size==="Legal" ? (orient==="portrait" ? "215mm 330mm" : "330mm 215mm") : ("A4" + (orient==="portrait" ? " portrait" : " landscape"));
   pageStyle.textContent = "@page{size:" + ukuran + ";margin:10mm 10mm 12mm}";
@@ -1174,7 +1177,11 @@ function siapCetak(sec, metric, orient, size, brk){
     `<div class="m">${esc(sumber)} · Dicetak ${esc(jam(new Date()))}</div>`;
   render();
 }
-function selesaiCetak(){ if (!st.printing) return; st.printing = false; render(); }
+let judulAsli = null;
+function selesaiCetak(){
+  if (judulAsli !== null){ document.title = judulAsli; judulAsli = null; }
+  if (!st.printing) return; st.printing = false; render();
+}
 document.getElementById("btnPrint").addEventListener("click", bukaCetak);
 document.getElementById("pCancel").addEventListener("click", ()=> dlgP.close());
 [[pInduk,"induk"],[pSkpd,"skpd"],[pJenis,"jenis"]].forEach(([el,k])=> el.addEventListener("change", ()=>{ st.f[k] = el.value; st.page = 0; syncSelects(); render(); }));
