@@ -243,6 +243,28 @@ body.lvl-tanpa-csv [data-act="csv"]{display:none!important}
   }
 }
 @media (prefers-reduced-motion: reduce){.card,.kpi{transition:none}.kpi:hover{transform:none}}
+/* ---- Pita judul & kartu pengguna ---- */
+header.top{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"brand akun" "status status";gap:14px 20px;align-items:center}
+header.top .brand{grid-area:brand;min-width:0}
+header.top .status{grid-area:status;padding-top:12px;border-top:1px solid rgba(255,250,205,.16)}
+.akun{grid-area:akun;display:flex;align-items:center;gap:12px;padding:10px 12px 10px 10px;border-radius:14px;
+  background:rgba(255,250,205,.10);border:1px solid rgba(218,165,32,.55);box-shadow:inset 0 1px 0 rgba(255,250,205,.12),0 4px 18px rgba(0,0,0,.18);max-width:520px}
+.akun[hidden]{display:none}
+.avatar{flex:none;width:46px;height:46px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:17px;letter-spacing:.02em;
+  color:#36454F;background:radial-gradient(circle at 30% 25%,#F6D77A,#DAA520 60%,#B8860B);box-shadow:0 0 0 3px rgba(255,250,205,.25)}
+.userchip{display:flex;flex-direction:column;min-width:0;flex:1 1 auto;line-height:1.25}
+.u-skpd{font-size:17px;font-weight:800;color:#FFE38A;letter-spacing:.005em;overflow-wrap:anywhere}
+.u-nama{font-size:15px;font-weight:600;color:var(--head-text);margin-top:2px;overflow-wrap:anywhere}
+.u-lv{display:inline-block;font-size:11px;font-weight:700;color:#36454F;background:#DAA520;border-radius:999px;padding:1px 8px;margin-left:6px;vertical-align:2px}
+.akun #btnLogout{flex:none;margin-left:6px;background:transparent!important;color:var(--head-text)!important;border:1px solid rgba(255,250,205,.35)!important;border-radius:10px}
+.akun #btnLogout:hover{background:rgba(255,250,205,.12)!important}
+@media (max-width:760px){
+  header.top{grid-template-columns:minmax(0,1fr);grid-template-areas:"brand" "akun" "status"}
+  .akun{max-width:none}
+  .u-skpd{font-size:16px}
+  .akun{gap:10px;padding:10px}.avatar{width:40px;height:40px;font-size:15px}.akun #btnLogout{margin-left:0;padding:6px 10px}
+}
+@media print{.akun{display:none!important}}
 /* ---- Grafik batang SKPD ---- */
 .kol-wrap{overflow-x:auto;margin:4px 0 8px;-webkit-overflow-scrolling:touch}
 .kol-svg{display:block}
@@ -368,13 +390,16 @@ svg.pie{width:230px;max-width:100%;height:auto;flex:none}
       <h1 id="judul">DASHBOARD REALISASI DANA TAMBAHAN TKD 2026</h1>
       <p class="sub" id="subjudul"></p>
     </div></div>
+    <div class="akun" id="akunBox" hidden>
+      <span class="avatar" id="avatar" aria-hidden="true"></span>
+      <span class="userchip" id="userChip" hidden></span>
+      <button class="btn" id="btnLogout" type="button" hidden title="Keluar dari dashboard">Keluar</button>
+    </div>
     <div class="status">
       <span class="chip" id="srcChip"><span class="dot"></span><span id="srcText">Memuat data…</span></span>
       <button class="btn" id="btnReload" type="button" title="Tarik ulang data dari Google Sheets">↻ Muat ulang</button>
       <button class="btn" id="btnSetting" type="button" title="Atur link Google Sheets">⚙ Sumber data</button>
       <button class="btn" id="btnPrint" type="button">Cetak</button>
-      <span class="chip userchip" id="userChip" hidden></span>
-      <button class="btn" id="btnLogout" type="button" hidden>Keluar</button>
     </div>
   </header>
 
@@ -1228,7 +1253,13 @@ function terapkanPengguna(u){
   document.body.classList.toggle("lvl-terbatas", lv >= 2);
   document.body.classList.toggle("lvl-tanpa-csv", lv >= 3);
   const chip = document.getElementById("userChip");
-  chip.hidden = false; chip.innerHTML = `<b>${esc(u.nama)}</b>` + (u.namaPengguna ? ` · ${esc(u.namaPengguna)}` : "") + (lv === 1 ? ` · Level ${lv}` : "");
+  chip.hidden = false;
+  chip.innerHTML = `<span class="u-skpd">${esc(u.nama)}</span>` +
+    `<span class="u-nama">${u.namaPengguna ? esc(u.namaPengguna) : "&nbsp;"}${lv === 1 ? ` <span class="u-lv">Level ${lv}</span>` : ""}</span>`;
+  const sumberInisial = (u.namaPengguna || u.nama || "?").replace(/^(dr|drs|ir|h|hj|prof)\.?\s+/i, "");
+  const ini = sumberInisial.split(/[\s,]+/).filter(w=>/^[A-Za-z]/.test(w)).slice(0,2).map(w=>w[0].toUpperCase()).join("");
+  document.getElementById("avatar").textContent = ini || "?";
+  document.getElementById("akunBox").hidden = false;
   document.getElementById("btnLogout").hidden = false;
 }
 document.getElementById("lihatKode").addEventListener("click", ()=>{ const i = document.getElementById("kodeAkses"); i.type = i.type === "password" ? "text" : "password"; });
@@ -1251,7 +1282,7 @@ document.getElementById("loginForm").addEventListener("submit", async ev=>{
 });
 document.getElementById("btnLogout").addEventListener("click", ()=>{
   hapusToken(); st.user = null; document.body.classList.remove("lvl-terbatas","lvl-tanpa-csv");
-  document.getElementById("userChip").hidden = true; document.getElementById("btnLogout").hidden = true;
+  document.getElementById("userChip").hidden = true; document.getElementById("btnLogout").hidden = true; document.getElementById("akunBox").hidden = true;
   st.f = {induk:"",skpd:"",jenis:""}; tampilLogin("Anda sudah keluar.");
 });
 async function muatAman(){
