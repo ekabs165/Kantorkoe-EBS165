@@ -1073,7 +1073,7 @@ function renderDetail(){
     <td>${esc(d.skpd)}</td>
     <td class="wrap">${esc(d.subKeg)}${d.kodeSub?`<br><small>${esc(d.kodeSub)}</small>`:""}</td>
     <td>${esc(d.jenis)}<br><small>${esc(jenisLabel(d.jenis))}</small></td>
-    <td class="wrap">${esc(d.namaRek)}${d.norek?`<br><small>${esc(d.norek)}</small>`:""}${d.dasar?`<br><small>SP2D: ${esc(d.dasar)}</small>`:""}${d.ketUbah?`<br><small>APBDP: ${esc(d.ketUbah)}</small>`:""}${d.ketFinal?`<br><small>Ket: ${esc(d.ketFinal)}</small>`:""}</td>
+    <td class="wrap">${esc(d.namaRek)}${d.norek?`<br><small>${esc(d.norek)}</small>`:""}${d.dasar?`<br><small>SP2D: ${esc(d.dasar)}</small>`:""}</td>
     <td class="n">${rp(d.pagu)}</td><td class="n">${rp(d.real)}</td><td class="n">${pctTxt(d.real,d.pagu)}</td></tr>`).join("")
     || `<tr><td colspan="7" style="text-align:center;color:var(--text-3);padding:20px">Tidak ada rincian yang cocok.</td></tr>`;
   const P = sum(D,"pagu"), R = sum(D,"real");
