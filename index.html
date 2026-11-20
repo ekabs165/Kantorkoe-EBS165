@@ -1054,7 +1054,7 @@ function detailRows(){
   if (q){
     const terms = q.split(" ");
     D = D.filter(d => {
-      const hay = norm([d.skpd,d.kodeSkpd,d.subKeg,d.kodeSub,d.kdProg,d.kdKeg,d.jenis,jenisLabel(d.jenis),d.norek,d.namaRek,d.dasar,d.induk,d.sub,d.ketUbah,d.ketFinal].join(" "));
+      const hay = norm([d.skpd,d.kodeSkpd,d.subKeg,d.kodeSub,d.kdProg,d.kdKeg,d.jenis,jenisLabel(d.jenis),d.norek,d.namaRek,d.dasar,d.induk,d.sub].join(" "));
       return terms.every(t => hay.includes(t));
     });
   }
